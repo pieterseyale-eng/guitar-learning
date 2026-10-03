@@ -1,4 +1,6 @@
 import type { FC, KeyboardEvent } from 'react'
+import { fretName, stringLabel } from './i18n'
+import type { Language } from './i18n'
 
 const STRING_NAMES = ['E', 'B', 'G', 'D', 'A', 'E'] as const
 const STRINGS = 6
@@ -26,6 +28,7 @@ export interface FretboardPosition {
 }
 
 export interface FretboardSvgProps {
+  language?: Language
   width?: number
   height?: number
   dots?: FretboardDot[]
@@ -124,6 +127,7 @@ function getFretCenterX(fret: number): number {
 }
 
 const FretboardSvg: FC<FretboardSvgProps> = ({
+  language = 'zh',
   width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   dots = [],
@@ -160,7 +164,11 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       viewBox={`0 0 ${width} ${height}`}
       xmlns="http://www.w3.org/2000/svg"
       className={`fretboard-svg ${interactive ? 'is-interactive' : ''}`}
-      aria-label={`吉他指板，开放弦到第 ${MAX_FRET} 品`}
+      aria-label={
+        language === 'zh'
+          ? `吉他指板，开放弦到第 ${MAX_FRET} 品`
+          : `Guitar fretboard, open strings through fret ${MAX_FRET}`
+      }
       role="img"
     >
       <defs>
@@ -246,8 +254,11 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
         )
       })}
 
-      <g aria-label="0品琴枕" filter="url(#nutShadow)">
-        <title>0品 · 琴枕</title>
+      <g
+        aria-label={language === 'zh' ? '0品琴枕' : 'Fret 0 nut'}
+        filter="url(#nutShadow)"
+      >
+        <title>{language === 'zh' ? '0品 · 琴枕' : 'Fret 0 · nut'}</title>
         <rect
           x={BOARD_LEFT - 4.5}
           y={BOARD_TOP - 3}
@@ -406,9 +417,11 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
                 key={`target-${stringIndex}-${fret}`}
                 role="button"
                 tabIndex={disabled ? -1 : 0}
-                aria-label={`${stringIndex + 1}弦（${STRING_NAMES[stringIndex]}），${
-                  fret === 0 ? '空弦' : `第 ${fret} 品`
-                }`}
+                aria-label={
+                  language === 'zh'
+                    ? `${stringLabel(language, stringIndex + 1)}（${STRING_NAMES[stringIndex]}），${fretName(language, fret)}`
+                    : `${stringLabel(language, stringIndex + 1)} (${STRING_NAMES[stringIndex]}), ${fretName(language, fret)}`
+                }
                 aria-disabled={disabled}
                 className="fret-position-target"
                 onClick={() => activatePosition(position)}

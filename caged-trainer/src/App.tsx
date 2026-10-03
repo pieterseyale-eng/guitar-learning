@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import FretboardSvg, { MAX_FRET } from './FretboardSvg'
 import type { FretboardDot, FretboardPosition } from './FretboardSvg'
 import {
-  DEGREE_NAMES,
   MAJOR_KEYS,
   displayNote,
   getTargetPositions,
@@ -25,6 +24,17 @@ import { nextQuestion } from './engine/quiz'
 import type { QuizQuestion } from './engine/quiz'
 import { SHAPE_IDS } from './shapes/loadShapes'
 import type { ShapeId } from './shapes/loadShapes'
+import {
+  COPY,
+  degreeName,
+  fretName,
+  inversionName,
+  majorKeyName,
+  stringGroupName,
+  stringLabel,
+  stringScope,
+} from './i18n'
+import type { Language } from './i18n'
 import './App.css'
 
 const DEBUG =
@@ -36,12 +46,12 @@ type Mode = 'locate' | 'note' | 'functional' | 'shape' | 'degree'
 const SHAPE_OPTIONS = ['C', 'A', 'G', 'E', 'D'] as const
 const DEGREE_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const
 const STRING_OPTIONS = [
-  { index: 0, label: '1弦 E' },
-  { index: 1, label: '2弦 B' },
-  { index: 2, label: '3弦 G' },
-  { index: 3, label: '4弦 D' },
-  { index: 4, label: '5弦 A' },
-  { index: 5, label: '6弦 E' },
+  { index: 0, note: 'E' },
+  { index: 1, note: 'B' },
+  { index: 2, note: 'G' },
+  { index: 3, note: 'D' },
+  { index: 4, note: 'A' },
+  { index: 5, note: 'E' },
 ] as const
 
 interface LocateResult {
@@ -64,11 +74,9 @@ function normalizeNoteAnswer(value: string): string {
     .toLowerCase()
 }
 
-function formatFret(fret: number): string {
-  return fret === 0 ? '空弦' : `${fret}品`
-}
-
 function App() {
+  const [language, setLanguage] = useState<Language>('zh')
+  const t = COPY[language]
   const [mode, setMode] = useState<Mode>('locate')
   const [question, setQuestion] = useState<QuizQuestion>(() =>
     nextQuestion('shape')
@@ -112,6 +120,11 @@ function App() {
     ...SHAPE_IDS,
   ])
 
+  useEffect(() => {
+    document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en'
+    document.title = t.appTitle
+  }, [language, t.appTitle])
+
   const targetPositions = useMemo(
     () =>
       getTargetPositions(locateQuestion.targetPitchClass, MAX_FRET).filter(
@@ -130,13 +143,11 @@ function App() {
   )
 
   const selectedStringScope = useMemo(() => {
-    if (selectedStrings.length === STRING_OPTIONS.length) return '全部琴弦'
     const stringNumbers = [...selectedStrings]
       .sort((a, b) => a - b)
       .map((index) => index + 1)
-      .join('、')
-    return `第 ${stringNumbers} 弦`
-  }, [selectedStrings])
+    return stringScope(language, stringNumbers)
+  }, [language, selectedStrings])
 
   const startLocateQuestion = useCallback(
     (
@@ -439,62 +450,82 @@ function App() {
       : undefined
 
   return (
-    <main className="app">
+    <main className="app" lang={language === 'zh' ? 'zh-CN' : 'en'}>
       <header className="app-header">
         <div>
           <p className="app-kicker">Guitar Learning Lab</p>
-          <h1>吉他指板训练</h1>
+          <h1>{t.appTitle}</h1>
         </div>
         {DEBUG && <span className="app-debug-badge">DEBUG</span>}
-        <section className="app-stats" aria-label="答题统计">
-          <div><strong>{total}</strong><span>总题数</span></div>
-          <div><strong>{correct}</strong><span>正确</span></div>
-          <div><strong>{streak}</strong><span>连对</span></div>
-        </section>
+        <div className="app-header-tools">
+          <div className="language-switch" role="group" aria-label={t.language}>
+            <button
+              type="button"
+              className={language === 'zh' ? 'active' : ''}
+              aria-pressed={language === 'zh'}
+              onClick={() => setLanguage('zh')}
+            >
+              中
+            </button>
+            <button
+              type="button"
+              className={language === 'en' ? 'active' : ''}
+              aria-pressed={language === 'en'}
+              onClick={() => setLanguage('en')}
+            >
+              EN
+            </button>
+          </div>
+          <section className="app-stats" aria-label={t.statsAria}>
+            <div><strong>{total}</strong><span>{t.total}</span></div>
+            <div><strong>{correct}</strong><span>{t.correct}</span></div>
+            <div><strong>{streak}</strong><span>{t.streak}</span></div>
+          </section>
+        </div>
       </header>
 
-      <nav className="app-mode" aria-label="训练模式">
+      <nav className="app-mode" aria-label={t.modesAria}>
         <button
           type="button"
           className={mode === 'locate' ? 'active' : ''}
           onClick={() => handleModeChange('locate')}
         >
-          级数定位
+          {t.locateMode}
         </button>
         <button
           type="button"
           className={mode === 'note' ? 'active' : ''}
           onClick={() => handleModeChange('note')}
         >
-          级数问答
+          {t.noteMode}
         </button>
         <button
           type="button"
           className={mode === 'functional' ? 'active' : ''}
           onClick={() => handleModeChange('functional')}
         >
-          功能和弦
+          {t.functionalMode}
         </button>
         <button
           type="button"
           className={mode === 'shape' ? 'active' : ''}
           onClick={() => handleModeChange('shape')}
         >
-          CAGED 形状
+          {t.cagedShapeMode}
         </button>
         <button
           type="button"
           className={mode === 'degree' ? 'active' : ''}
           onClick={() => handleModeChange('degree')}
         >
-          CAGED 度数
+          {t.cagedDegreeMode}
         </button>
       </nav>
 
       {(mode === 'locate' || mode === 'note') && (
-        <section className="locate-settings" aria-label="出题范围">
+        <section className="locate-settings" aria-label={t.questionRange}>
           <div className="setting-row">
-            <span className="setting-label">调性</span>
+            <span className="setting-label">{t.key}</span>
             <div className="setting-options">
               {MAJOR_KEYS.map((key) => (
                 <button
@@ -510,7 +541,7 @@ function App() {
             </div>
           </div>
           <div className="setting-row">
-            <span className="setting-label">级数</span>
+            <span className="setting-label">{t.degree}</span>
             <div className="setting-options">
               {DEGREE_OPTIONS.map((degree) => (
                 <button
@@ -527,7 +558,7 @@ function App() {
           </div>
           {mode === 'locate' && (
             <div className="setting-row string-setting-row">
-              <span className="setting-label">琴弦</span>
+              <span className="setting-label">{t.strings}</span>
               <div className="setting-options string-options">
                 {STRING_OPTIONS.map((string) => (
                   <button
@@ -537,7 +568,7 @@ function App() {
                     aria-pressed={selectedStrings.includes(string.index)}
                     onClick={() => togglePracticeString(string.index)}
                   >
-                    {string.label}
+                    {stringLabel(language, string.index + 1, string.note)}
                   </button>
                 ))}
               </div>
@@ -547,9 +578,9 @@ function App() {
       )}
 
       {mode === 'functional' && (
-        <section className="locate-settings" aria-label="功能和弦出题范围">
+        <section className="locate-settings" aria-label={t.functionalRange}>
           <div className="setting-row">
-            <span className="setting-label">调性</span>
+            <span className="setting-label">{t.key}</span>
             <div className="setting-options">
               {MAJOR_KEYS.map((key) => (
                 <button
@@ -565,7 +596,7 @@ function App() {
             </div>
           </div>
           <div className="setting-row functional-string-setting-row">
-            <span className="setting-label">琴弦</span>
+            <span className="setting-label">{t.strings}</span>
             <div className="setting-options functional-string-options">
               {STRING_GROUPS.map((group) => (
                 <button
@@ -575,7 +606,7 @@ function App() {
                   aria-pressed={functionalStringGroups.includes(group.label)}
                   onClick={() => toggleFunctionalStringGroup(group.label)}
                 >
-                  {group.label}
+                  {stringGroupName(language, group.label)}
                 </button>
               ))}
             </div>
@@ -585,7 +616,7 @@ function App() {
 
       {mode === 'degree' && (
         <section className="app-degree-shapes">
-          <span className="app-degree-shapes-label">练习形状</span>
+          <span className="app-degree-shapes-label">{t.practiceShapes}</span>
           {SHAPE_IDS.map((id) => (
             <button
               key={id}
@@ -603,47 +634,63 @@ function App() {
         <section className="locate-question" aria-live="polite">
           <p>
             {mode === 'locate'
-              ? '级数定位 · 开放弦至 24 品'
-              : '级数问答 · 音名记忆'}
+              ? t.locateKicker
+              : t.noteKicker}
           </p>
           {mode === 'locate' ? (
             <>
-              <h2>
-                请在<strong>{selectedStringScope}</strong>上找出所有
-                <strong>{displayNote(locateQuestion.key)} 大调</strong>的
-                <strong>{DEGREE_NAMES[locateQuestion.degree - 1]}级音</strong>
-              </h2>
-              <span>点击所有位置，再统一提交答案</span>
+              {language === 'zh' ? (
+                <h2>
+                  请在<strong>{selectedStringScope}</strong>上找出所有
+                  <strong>{majorKeyName(language, displayNote(locateQuestion.key))}</strong>的
+                  <strong>{degreeName(language, locateQuestion.degree)}</strong>
+                </h2>
+              ) : (
+                <h2>
+                  Find every <strong>{degreeName(language, locateQuestion.degree)}</strong> of{' '}
+                  <strong>{majorKeyName(language, displayNote(locateQuestion.key))}</strong> on{' '}
+                  <strong>{selectedStringScope}</strong>.
+                </h2>
+              )}
+              <span>{t.clickAll}</span>
             </>
           ) : (
-            <h2>
-              <strong>{displayNote(locateQuestion.key)} 大调</strong>的
-              <strong>{DEGREE_NAMES[locateQuestion.degree - 1]}级音</strong>
-              是什么？
-            </h2>
+            language === 'zh' ? (
+              <h2>
+                <strong>{majorKeyName(language, displayNote(locateQuestion.key))}</strong>的
+                <strong>{degreeName(language, locateQuestion.degree)}</strong>
+                是什么？
+              </h2>
+            ) : (
+              <h2>
+                What is the <strong>{degreeName(language, locateQuestion.degree)}</strong> of{' '}
+                <strong>{majorKeyName(language, displayNote(locateQuestion.key))}</strong>?
+              </h2>
+            )
           )}
         </section>
       )}
 
       {mode === 'functional' && (
         <section className="functional-question" aria-live="polite">
-          <p>功能和弦 · 三和弦转位</p>
+          <p>{t.functionalKicker}</p>
           <div className="functional-prompt">
             <span>
-              <b>{displayNote(functionalQuestion.key)}</b> 大调
+              <b>{majorKeyName(language, displayNote(functionalQuestion.key))}</b>
             </span>
             <strong>{functionalQuestion.functionSymbol}</strong>
-            <span>{functionalQuestion.stringGroup.label}</span>
+            <span>{stringGroupName(language, functionalQuestion.stringGroup.label)}</span>
           </div>
-          <h2>在指定三根弦上，每根弦选择一个音</h2>
-          <small>按固定三和弦指型作答，音序从低音弦到高音弦判断</small>
+          <h2>{t.functionalInstruction}</h2>
+          <small>{t.functionalTip}</small>
         </section>
       )}
 
       {mode !== 'note' && (
-        <section className="app-fretboard" aria-label="吉他指板答题区">
+        <section className="app-fretboard" aria-label={t.fretboardArea}>
           <div className="fretboard-scroll">
             <FretboardSvg
+              language={language}
               dots={dots}
               root={root}
               interactive={mode === 'locate' || mode === 'functional'}
@@ -675,7 +722,7 @@ function App() {
         <section className="locate-answer">
           {locateResult == null ? (
             <div className="selection-status">
-              已选择 <strong>{selectedPositions.length}</strong> 个位置
+              {t.selectedPositions} <strong>{selectedPositions.length}</strong> {t.positions}
             </div>
           ) : (
             <div
@@ -683,14 +730,28 @@ function App() {
               role="status"
             >
               <strong>
-                {locateResult.isCorrect ? '全部找对了！' : '再观察一下指板位置'}
+                {locateResult.isCorrect ? t.allCorrect : t.checkFretboard}
               </strong>
               <span>
-                {displayNote(locateQuestion.key)} 大调的
-                {DEGREE_NAMES[locateQuestion.degree - 1]}级音是{' '}
-                <b>{displayNote(locateQuestion.targetNote)}</b>，你找到了{' '}
-                {locateResult.found}/{locateResult.targetCount} 个
-                {locateResult.extra > 0 ? `，另有 ${locateResult.extra} 个错选` : ''}。
+                {language === 'zh' ? (
+                  <>
+                    {majorKeyName(language, displayNote(locateQuestion.key))}的
+                    {degreeName(language, locateQuestion.degree)}是{' '}
+                    <b>{displayNote(locateQuestion.targetNote)}</b>，你找到了{' '}
+                    {locateResult.found}/{locateResult.targetCount} 个
+                    {locateResult.extra > 0 ? `，另有 ${locateResult.extra} 个错选` : ''}。
+                  </>
+                ) : (
+                  <>
+                    The {degreeName(language, locateQuestion.degree)} of{' '}
+                    {majorKeyName(language, displayNote(locateQuestion.key))} is{' '}
+                    <b>{displayNote(locateQuestion.targetNote)}</b>. You found{' '}
+                    {locateResult.found}/{locateResult.targetCount} positions
+                    {locateResult.extra > 0
+                      ? `, with ${locateResult.extra} incorrect selection${locateResult.extra === 1 ? '' : 's'}`
+                      : ''}.
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -704,7 +765,7 @@ function App() {
                   disabled={selectedPositions.length === 0}
                   onClick={() => setSelectedPositions([])}
                 >
-                  清空选择
+                  {t.clear}
                 </button>
                 <button
                   type="button"
@@ -712,28 +773,28 @@ function App() {
                   disabled={selectedPositions.length === 0}
                   onClick={submitLocateAnswer}
                 >
-                  提交答案
+                  {t.submit}
                 </button>
               </>
             ) : (
               <button type="button" className="primary" onClick={goNextQuestion}>
-                下一题
+                {t.next}
               </button>
             )}
           </div>
 
-          <div className="answer-legend" aria-label="颜色说明">
-            <span><i className="selected" />已选择</span>
-            <span><i className="correct" />正确</span>
-            <span><i className="missed" />漏选</span>
-            <span><i className="wrong" />错选</span>
+          <div className="answer-legend" aria-label={t.colorLegend}>
+            <span><i className="selected" />{t.selected}</span>
+            <span><i className="correct" />{t.correct}</span>
+            <span><i className="missed" />{t.missed}</span>
+            <span><i className="wrong" />{t.wrong}</span>
           </div>
         </section>
       ) : mode === 'functional' ? (
         <section className="functional-answer">
           {functionalResult == null ? (
             <div className="selection-status">
-              已选择 <strong>{functionalPositions.length}</strong> / 3 个音
+              {t.selectedPositions} <strong>{functionalPositions.length}</strong> {t.selectedNotesSuffix}
             </div>
           ) : (
             <div
@@ -742,25 +803,27 @@ function App() {
             >
               <h3>
                 {functionalResult.isCorrect
-                  ? '这个三和弦转位正确！'
-                  : '音名、转位顺序或固定指型不正确'}
+                  ? t.functionalCorrect
+                  : t.functionalWrong}
               </h3>
               <dl className="functional-details">
-                <div><dt>当前调性</dt><dd>{displayNote(functionalQuestion.key)} 大调</dd></div>
-                <div><dt>功能和弦</dt><dd>{functionalQuestion.functionSymbol}</dd></div>
-                <div><dt>实际和弦名</dt><dd>{displayNote(functionalQuestion.chordName)}</dd></div>
-                <div><dt>转位类型</dt><dd>{functionalQuestion.inversionName}</dd></div>
+                <div><dt>{t.currentKey}</dt><dd>{majorKeyName(language, displayNote(functionalQuestion.key))}</dd></div>
+                <div><dt>{t.functionalChord}</dt><dd>{functionalQuestion.functionSymbol}</dd></div>
+                <div><dt>{t.actualChord}</dt><dd>{displayNote(functionalQuestion.chordName)}</dd></div>
+                <div><dt>{t.inversion}</dt><dd>{inversionName(language, functionalQuestion.inversion)}</dd></div>
                 <div>
-                  <dt>目标音级顺序</dt>
+                  <dt>{t.targetOrder}</dt>
                   <dd>{functionalQuestion.orderedIntervals.join('–')}</dd>
                 </div>
                 <div className="wide">
-                  <dt>用户所选音名</dt>
+                  <dt>{t.userNotes}</dt>
                   <dd>
                     {[...functionalPositions]
                       .sort((a, b) => b.stringIndex - a.stringIndex)
                       .map((position) =>
-                        `${displayNote(noteNameAtPosition(position, functionalPreferFlats))}（${position.stringIndex + 1}弦${formatFret(position.fret)}）`
+                        language === 'zh'
+                          ? `${displayNote(noteNameAtPosition(position, functionalPreferFlats))}（${stringLabel(language, position.stringIndex + 1)}${fretName(language, position.fret)}）`
+                          : `${displayNote(noteNameAtPosition(position, functionalPreferFlats))} (${stringLabel(language, position.stringIndex + 1)}, ${fretName(language, position.fret)})`
                       )
                       .join(' → ')}
                   </dd>
@@ -769,8 +832,8 @@ function App() {
 
               <div className="legal-voicings">
                 <h4>
-                  全部合法指型位置
-                  <span>{functionalLegalVoicings.length} 组</span>
+                  {t.legalPositions}
+                  <span>{functionalLegalVoicings.length} {t.groups}</span>
                 </h4>
                 <ol>
                   {functionalLegalVoicings.map((voicing, voicingIndex) => (
@@ -779,8 +842,12 @@ function App() {
                         const target = functionalQuestion.targets[positionIndex]
                         return (
                           <span key={`${position.stringIndex}-${position.fret}`}>
-                            {position.stringIndex + 1}弦{formatFret(position.fret)}
-                            （{displayNote(target.note)}）
+                            {language === 'zh'
+                              ? `${stringLabel(language, position.stringIndex + 1)}${fretName(language, position.fret)}`
+                              : `${stringLabel(language, position.stringIndex + 1)}, ${fretName(language, position.fret)}`}
+                            {language === 'zh'
+                              ? `（${displayNote(target.note)}）`
+                              : ` (${displayNote(target.note)})`}
                           </span>
                         )
                       })}
@@ -800,7 +867,7 @@ function App() {
                   disabled={functionalPositions.length === 0}
                   onClick={() => setFunctionalPositions([])}
                 >
-                  清空选择
+                  {t.clear}
                 </button>
                 <button
                   type="button"
@@ -808,7 +875,7 @@ function App() {
                   disabled={functionalPositions.length !== 3}
                   onClick={submitFunctionalAnswer}
                 >
-                  提交答案
+                  {t.submit}
                 </button>
               </>
             ) : (
@@ -817,7 +884,7 @@ function App() {
                 className="primary"
                 onClick={goNextQuestion}
               >
-                下一题
+                {t.next}
               </button>
             )}
           </div>
@@ -831,7 +898,7 @@ function App() {
               handleNoteAnswer()
             }}
           >
-            <label htmlFor="note-answer">填写音名</label>
+            <label htmlFor="note-answer">{t.noteLabel}</label>
             <div className="note-input-row">
               <input
                 id="note-answer"
@@ -848,7 +915,7 @@ function App() {
                 className="primary"
                 disabled={feedback == null && normalizeNoteAnswer(noteAnswer) === ''}
               >
-                {feedback == null ? '提交答案' : '下一题'}
+                {feedback == null ? t.submit : t.next}
               </button>
             </div>
           </form>
@@ -858,15 +925,25 @@ function App() {
               className={`note-feedback ${feedback.isCorrect ? 'correct' : 'wrong'}`}
               role="status"
             >
-              <strong>{feedback.isCorrect ? '回答正确！' : '这题答错了'}</strong>
+              <strong>{feedback.isCorrect ? t.answerCorrect : t.answerWrong}</strong>
               <span>
-                {displayNote(locateQuestion.key)} 大调的
-                {DEGREE_NAMES[locateQuestion.degree - 1]}级音是{' '}
-                <b>{displayNote(feedback.correctAnswer)}</b>。
+                {language === 'zh' ? (
+                  <>
+                    {majorKeyName(language, displayNote(locateQuestion.key))}的
+                    {degreeName(language, locateQuestion.degree)}是{' '}
+                    <b>{displayNote(feedback.correctAnswer)}</b>。
+                  </>
+                ) : (
+                  <>
+                    The {degreeName(language, locateQuestion.degree)} of{' '}
+                    {majorKeyName(language, displayNote(locateQuestion.key))} is{' '}
+                    <b>{displayNote(feedback.correctAnswer)}</b>.
+                  </>
+                )}
               </span>
             </div>
           )}
-          <p className="note-format-tip">支持 ♯ / # 和 ♭ / b 两种写法</p>
+          <p className="note-format-tip">{t.noteFormatTip}</p>
         </section>
       ) : (
         <>
@@ -897,17 +974,17 @@ function App() {
 
           <section className="app-feedback">
             {feedback === null ? (
-              <p className="app-feedback-placeholder">请选择答案</p>
+              <p className="app-feedback-placeholder">{t.chooseAnswer}</p>
             ) : (
               <p className={feedback.isCorrect ? 'correct' : 'wrong'}>
                 {feedback.isCorrect
-                  ? '正确！'
-                  : `错误，正确答案是 ${feedback.correctAnswer}`}
+                  ? t.correctShort
+                  : `${t.wrongAnswerPrefix} ${feedback.correctAnswer}`}
               </p>
             )}
             {feedback !== null && (
               <button type="button" className="app-next" onClick={goNextQuestion}>
-                下一题
+                {t.next}
               </button>
             )}
           </section>
