@@ -84,9 +84,9 @@
 
 .app-mode {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-self: center;
-  width: min(900px, 100%);
+  width: min(1100px, 100%);
   padding: 0.35rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
@@ -192,6 +192,14 @@
   min-width: 4.4rem;
 }
 
+.functional-string-setting-row {
+  justify-content: center;
+}
+
+.functional-string-options button {
+  min-width: 4.6rem;
+}
+
 .locate-question {
   padding: 0.8rem 1rem 0.45rem;
   text-align: center;
@@ -226,6 +234,72 @@
   margin-top: 0.45rem;
   color: #85868a;
   font-size: 0.9rem;
+}
+
+.functional-question {
+  padding: 0.7rem 1rem 0.3rem;
+  text-align: center;
+}
+
+.functional-question > p {
+  margin: 0 0 0.7rem;
+  color: #d6a85b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.functional-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+.functional-prompt span,
+.functional-prompt strong {
+  display: inline-flex;
+  min-height: 3rem;
+  padding: 0.55rem 1rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.functional-prompt span {
+  color: #d5d2cc;
+  font-size: 1.1rem;
+}
+
+.functional-prompt span b {
+  margin-right: 0.25rem;
+  color: #f0c36f;
+  font-size: 1.35rem;
+}
+
+.functional-prompt strong {
+  min-width: 5.2rem;
+  border-color: rgba(240, 195, 111, 0.42);
+  color: #f4ca7c;
+  background: rgba(221, 157, 65, 0.12);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.65rem;
+}
+
+.functional-question h2 {
+  margin: 0.8rem 0 0.25rem;
+  color: #eeeae3;
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+  font-weight: 600;
+}
+
+.functional-question small {
+  color: #7e8084;
+  font-size: 0.82rem;
 }
 
 .app-fretboard {
@@ -377,6 +451,112 @@
 .answer-legend i.missed { background: #e4aa3a; }
 .answer-legend i.wrong { background: #df5e62; }
 
+.functional-answer {
+  display: flex;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.functional-result {
+  width: 100%;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.functional-result h3 {
+  margin: 0 0 1rem;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.functional-result.correct h3 { color: #67d4a2; }
+.functional-result.wrong h3 { color: #ed777b; }
+
+.functional-details {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.functional-details > div {
+  min-width: 0;
+  padding: 0.8rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.functional-details > div.wide {
+  grid-column: 1 / -1;
+}
+
+.functional-details dt {
+  margin-bottom: 0.25rem;
+  color: #77797e;
+  font-size: 0.75rem;
+}
+
+.functional-details dd {
+  margin: 0;
+  color: #e7e2da;
+  font-size: 0.98rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.legal-voicings {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.legal-voicings h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+  color: #dedbd5;
+  font-size: 0.95rem;
+}
+
+.legal-voicings h4 span {
+  color: #888a8e;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.legal-voicings ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 15rem;
+  margin: 0;
+  padding: 0 0 0 1.75rem;
+  gap: 0.45rem 1.5rem;
+  overflow-y: auto;
+  color: #8d8f93;
+  font-size: 0.82rem;
+}
+
+.legal-voicings li {
+  padding-left: 0.15rem;
+}
+
+.legal-voicings li span {
+  color: #c7c5c0;
+}
+
+.legal-voicings li span + span::before {
+  content: " → ";
+  margin: 0 0.25rem;
+  color: #67696d;
+}
+
 .note-answer-panel {
   display: flex;
   width: min(720px, 100%);
@@ -519,7 +699,7 @@
 
   .app-mode button {
     padding-inline: 0.4rem;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
   }
 
   .locate-settings {
@@ -555,6 +735,18 @@
 
   .note-input-row button {
     min-height: 3.2rem;
+  }
+
+  .functional-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .functional-details > div.wide {
+    grid-column: 1 / -1;
+  }
+
+  .legal-voicings ol {
+    grid-template-columns: 1fr;
   }
 }
 

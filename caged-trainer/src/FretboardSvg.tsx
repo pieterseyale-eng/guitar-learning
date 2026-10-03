@@ -353,7 +353,9 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
                 key={`target-${stringIndex}-${fret}`}
                 role="button"
                 tabIndex={disabled ? -1 : 0}
-                aria-label={`${STRING_NAMES[stringIndex]}弦，第 ${fret} 品`}
+                aria-label={`${stringIndex + 1}弦（${STRING_NAMES[stringIndex]}），${
+                  fret === 0 ? '空弦' : `第 ${fret} 品`
+                }`}
                 aria-disabled={disabled}
                 className="fret-position-target"
                 onClick={() => activatePosition(position)}

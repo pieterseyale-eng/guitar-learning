@@ -10,6 +10,17 @@ import {
   positionId,
 } from './data/fretboardQuiz'
 import type { LocateQuestion, MajorKey } from './data/fretboardQuiz'
+import {
+  STRING_GROUPS,
+  getLegalVoicings,
+  isLegalVoicing,
+  makeFunctionalChordQuestion,
+  noteNameAtPosition,
+} from './data/functionalChordQuiz'
+import type {
+  FunctionalChordQuestion,
+  StringGroupLabel,
+} from './data/functionalChordQuiz'
 import { nextQuestion } from './engine/quiz'
 import type { QuizQuestion } from './engine/quiz'
 import { SHAPE_IDS } from './shapes/loadShapes'
@@ -20,7 +31,7 @@ const DEBUG =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).get('debug') === '1'
 
-type Mode = 'locate' | 'note' | 'shape' | 'degree'
+type Mode = 'locate' | 'note' | 'functional' | 'shape' | 'degree'
 
 const SHAPE_OPTIONS = ['C', 'A', 'G', 'E', 'D'] as const
 const DEGREE_OPTIONS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -40,6 +51,10 @@ interface LocateResult {
   extra: number
 }
 
+interface FunctionalChordResult {
+  isCorrect: boolean
+}
+
 function normalizeNoteAnswer(value: string): string {
   return value
     .trim()
@@ -47,6 +62,10 @@ function normalizeNoteAnswer(value: string): string {
     .replace(/♯/g, '#')
     .replace(/♭/g, 'b')
     .toLowerCase()
+}
+
+function formatFret(fret: number): string {
+  return fret === 0 ? '空弦' : `${fret}品`
 }
 
 function App() {
@@ -69,6 +88,19 @@ function App() {
   >([])
   const [locateResult, setLocateResult] = useState<LocateResult | null>(null)
   const [noteAnswer, setNoteAnswer] = useState('')
+  const [functionalQuestion, setFunctionalQuestion] =
+    useState<FunctionalChordQuestion>(() => makeFunctionalChordQuestion())
+  const [functionalKeys, setFunctionalKeys] = useState<MajorKey[]>(() => [
+    ...MAJOR_KEYS,
+  ])
+  const [functionalStringGroups, setFunctionalStringGroups] = useState<
+    StringGroupLabel[]
+  >(() => STRING_GROUPS.map((group) => group.label))
+  const [functionalPositions, setFunctionalPositions] = useState<
+    FretboardPosition[]
+  >([])
+  const [functionalResult, setFunctionalResult] =
+    useState<FunctionalChordResult | null>(null)
   const [total, setTotal] = useState(0)
   const [correct, setCorrect] = useState(0)
   const [streak, setStreak] = useState(0)
@@ -86,6 +118,15 @@ function App() {
         (position) => selectedStrings.includes(position.stringIndex)
       ),
     [locateQuestion.targetPitchClass, selectedStrings]
+  )
+
+  const functionalLegalVoicings = useMemo(
+    () => getLegalVoicings(functionalQuestion, MAX_FRET),
+    [functionalQuestion]
+  )
+
+  const functionalPreferFlats = ['F', 'Bb', 'Eb'].includes(
+    functionalQuestion.key
   )
 
   const selectedStringScope = useMemo(() => {
@@ -113,9 +154,28 @@ function App() {
     [selectedDegrees, selectedKeys]
   )
 
+  const startFunctionalQuestion = useCallback((
+    keys: readonly MajorKey[] = functionalKeys,
+    groupLabels: readonly StringGroupLabel[] = functionalStringGroups
+  ) => {
+    const groups = STRING_GROUPS.filter((group) =>
+      groupLabels.includes(group.label)
+    )
+    setFunctionalQuestion((previous) =>
+      makeFunctionalChordQuestion(keys, groups, previous.id)
+    )
+    setFunctionalPositions([])
+    setFunctionalResult(null)
+    setFeedback(null)
+  }, [functionalKeys, functionalStringGroups])
+
   const goNextQuestion = useCallback(() => {
     if (mode === 'locate' || mode === 'note') {
       startLocateQuestion()
+      return
+    }
+    if (mode === 'functional') {
+      startFunctionalQuestion()
       return
     }
     const ids =
@@ -124,7 +184,7 @@ function App() {
         : undefined
     setQuestion(nextQuestion(mode, ids))
     setFeedback(null)
-  }, [degreeShapeIds, mode, startLocateQuestion])
+  }, [degreeShapeIds, mode, startFunctionalQuestion, startLocateQuestion])
 
   const recordAnswer = (isCorrect: boolean) => {
     setTotal((value) => value + 1)
@@ -166,6 +226,10 @@ function App() {
     setFeedback(null)
     if (newMode === 'locate' || newMode === 'note') {
       startLocateQuestion()
+      return
+    }
+    if (newMode === 'functional') {
+      startFunctionalQuestion()
       return
     }
     const ids =
@@ -217,6 +281,28 @@ function App() {
     setLocateResult(null)
   }
 
+  const toggleFunctionalKey = (key: MajorKey) => {
+    const nextKeys = functionalKeys.includes(key)
+      ? functionalKeys.length === 1
+        ? functionalKeys
+        : functionalKeys.filter((item) => item !== key)
+      : [...functionalKeys, key]
+    if (nextKeys === functionalKeys) return
+    setFunctionalKeys(nextKeys)
+    startFunctionalQuestion(nextKeys, functionalStringGroups)
+  }
+
+  const toggleFunctionalStringGroup = (label: StringGroupLabel) => {
+    const nextGroups = functionalStringGroups.includes(label)
+      ? functionalStringGroups.length === 1
+        ? functionalStringGroups
+        : functionalStringGroups.filter((item) => item !== label)
+      : [...functionalStringGroups, label]
+    if (nextGroups === functionalStringGroups) return
+    setFunctionalStringGroups(nextGroups)
+    startFunctionalQuestion(functionalKeys, nextGroups)
+  }
+
   const toggleFretPosition = (position: FretboardPosition) => {
     if (mode !== 'locate' || locateResult != null) return
     const id = positionId(position)
@@ -242,6 +328,33 @@ function App() {
       targetCount: targets.size,
       extra,
     })
+  }
+
+  const toggleFunctionalPosition = (position: FretboardPosition) => {
+    if (mode !== 'functional' || functionalResult != null) return
+    const id = positionId(position)
+    setFunctionalPositions((previous) => {
+      if (previous.some((item) => positionId(item) === id)) {
+        return previous.filter((item) => positionId(item) !== id)
+      }
+      return [
+        ...previous.filter(
+          (item) => item.stringIndex !== position.stringIndex
+        ),
+        position,
+      ]
+    })
+  }
+
+  const submitFunctionalAnswer = () => {
+    if (functionalPositions.length !== 3 || functionalResult != null) return
+    const isCorrect = isLegalVoicing(
+      functionalQuestion,
+      functionalPositions,
+      MAX_FRET
+    )
+    recordAnswer(isCorrect)
+    setFunctionalResult({ isCorrect })
   }
 
   const dots: FretboardDot[] = useMemo(() => {
@@ -270,6 +383,23 @@ function App() {
       return answerDots
     }
 
+    if (mode === 'functional') {
+      return functionalPositions.map((position) => ({
+        ...position,
+        state:
+          functionalResult == null
+            ? ('selected' as const)
+            : functionalResult.isCorrect
+              ? ('correct' as const)
+              : ('wrong' as const),
+        label:
+          functionalResult == null
+            ? undefined
+            : displayNote(
+                noteNameAtPosition(position, functionalPreferFlats)
+              ),
+      }))
+    }
 
     if (mode === 'note') return []
 
@@ -288,7 +418,17 @@ function App() {
       state: dot.highlight ? 'highlight' : 'default',
       label: DEBUG && dot.degree != null ? String(dot.degree) : undefined,
     }))
-  }, [locateQuestion.targetNote, locateResult, mode, question.placedDots, selectedPositions, targetPositions])
+  }, [
+    functionalPositions,
+    functionalPreferFlats,
+    functionalResult,
+    locateQuestion.targetNote,
+    locateResult,
+    mode,
+    question.placedDots,
+    selectedPositions,
+    targetPositions,
+  ])
 
   const root =
     (mode === 'shape' || mode === 'degree') && DEBUG && question.root
@@ -327,6 +467,13 @@ function App() {
           onClick={() => handleModeChange('note')}
         >
           级数问答
+        </button>
+        <button
+          type="button"
+          className={mode === 'functional' ? 'active' : ''}
+          onClick={() => handleModeChange('functional')}
+        >
+          功能和弦
         </button>
         <button
           type="button"
@@ -399,6 +546,43 @@ function App() {
         </section>
       )}
 
+      {mode === 'functional' && (
+        <section className="locate-settings" aria-label="功能和弦出题范围">
+          <div className="setting-row">
+            <span className="setting-label">调性</span>
+            <div className="setting-options">
+              {MAJOR_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={functionalKeys.includes(key) ? 'active' : ''}
+                  aria-pressed={functionalKeys.includes(key)}
+                  onClick={() => toggleFunctionalKey(key)}
+                >
+                  {displayNote(key)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="setting-row functional-string-setting-row">
+            <span className="setting-label">琴弦</span>
+            <div className="setting-options functional-string-options">
+              {STRING_GROUPS.map((group) => (
+                <button
+                  key={group.label}
+                  type="button"
+                  className={functionalStringGroups.includes(group.label) ? 'active' : ''}
+                  aria-pressed={functionalStringGroups.includes(group.label)}
+                  onClick={() => toggleFunctionalStringGroup(group.label)}
+                >
+                  {group.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {mode === 'degree' && (
         <section className="app-degree-shapes">
           <span className="app-degree-shapes-label">练习形状</span>
@@ -441,16 +625,47 @@ function App() {
         </section>
       )}
 
+      {mode === 'functional' && (
+        <section className="functional-question" aria-live="polite">
+          <p>功能和弦 · 三和弦转位</p>
+          <div className="functional-prompt">
+            <span>
+              <b>{displayNote(functionalQuestion.key)}</b> 大调
+            </span>
+            <strong>{functionalQuestion.functionSymbol}</strong>
+            <span>{functionalQuestion.stringGroup.label}</span>
+          </div>
+          <h2>在指定三根弦上，每根弦选择一个音</h2>
+          <small>按固定三和弦指型作答，音序从低音弦到高音弦判断</small>
+        </section>
+      )}
+
       {mode !== 'note' && (
         <section className="app-fretboard" aria-label="吉他指板答题区">
           <div className="fretboard-scroll">
             <FretboardSvg
               dots={dots}
               root={root}
-              interactive={mode === 'locate'}
-              disabled={locateResult != null}
-              enabledStringIndices={mode === 'locate' ? selectedStrings : undefined}
-              onPositionClick={toggleFretPosition}
+              interactive={mode === 'locate' || mode === 'functional'}
+              disabled={
+                mode === 'locate'
+                  ? locateResult != null
+                  : mode === 'functional'
+                    ? functionalResult != null
+                    : false
+              }
+              enabledStringIndices={
+                mode === 'locate'
+                  ? selectedStrings
+                  : mode === 'functional'
+                    ? functionalQuestion.stringGroup.stringIndices
+                    : undefined
+              }
+              onPositionClick={
+                mode === 'functional'
+                  ? toggleFunctionalPosition
+                  : toggleFretPosition
+              }
             />
           </div>
         </section>
@@ -512,6 +727,99 @@ function App() {
             <span><i className="correct" />正确</span>
             <span><i className="missed" />漏选</span>
             <span><i className="wrong" />错选</span>
+          </div>
+        </section>
+      ) : mode === 'functional' ? (
+        <section className="functional-answer">
+          {functionalResult == null ? (
+            <div className="selection-status">
+              已选择 <strong>{functionalPositions.length}</strong> / 3 个音
+            </div>
+          ) : (
+            <div
+              className={`functional-result ${functionalResult.isCorrect ? 'correct' : 'wrong'}`}
+              role="status"
+            >
+              <h3>
+                {functionalResult.isCorrect
+                  ? '这个三和弦转位正确！'
+                  : '音名、转位顺序或固定指型不正确'}
+              </h3>
+              <dl className="functional-details">
+                <div><dt>当前调性</dt><dd>{displayNote(functionalQuestion.key)} 大调</dd></div>
+                <div><dt>功能和弦</dt><dd>{functionalQuestion.functionSymbol}</dd></div>
+                <div><dt>实际和弦名</dt><dd>{displayNote(functionalQuestion.chordName)}</dd></div>
+                <div><dt>转位类型</dt><dd>{functionalQuestion.inversionName}</dd></div>
+                <div>
+                  <dt>目标音级顺序</dt>
+                  <dd>{functionalQuestion.orderedIntervals.join('–')}</dd>
+                </div>
+                <div className="wide">
+                  <dt>用户所选音名</dt>
+                  <dd>
+                    {[...functionalPositions]
+                      .sort((a, b) => b.stringIndex - a.stringIndex)
+                      .map((position) =>
+                        `${displayNote(noteNameAtPosition(position, functionalPreferFlats))}（${position.stringIndex + 1}弦${formatFret(position.fret)}）`
+                      )
+                      .join(' → ')}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="legal-voicings">
+                <h4>
+                  全部合法指型位置
+                  <span>{functionalLegalVoicings.length} 组</span>
+                </h4>
+                <ol>
+                  {functionalLegalVoicings.map((voicing, voicingIndex) => (
+                    <li key={`voicing-${voicingIndex}`}>
+                      {voicing.positions.map((position, positionIndex) => {
+                        const target = functionalQuestion.targets[positionIndex]
+                        return (
+                          <span key={`${position.stringIndex}-${position.fret}`}>
+                            {position.stringIndex + 1}弦{formatFret(position.fret)}
+                            （{displayNote(target.note)}）
+                          </span>
+                        )
+                      })}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          )}
+
+          <div className="locate-actions">
+            {functionalResult == null ? (
+              <>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={functionalPositions.length === 0}
+                  onClick={() => setFunctionalPositions([])}
+                >
+                  清空选择
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={functionalPositions.length !== 3}
+                  onClick={submitFunctionalAnswer}
+                >
+                  提交答案
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="primary"
+                onClick={goNextQuestion}
+              >
+                下一题
+              </button>
+            )}
           </div>
         </section>
       ) : mode === 'note' ? (

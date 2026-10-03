@@ -35,6 +35,12 @@ const PITCH_CLASSES: Record<string, number> = {
   B: 11,
 }
 
+export function noteToPitchClass(note: string): number {
+  const pitchClass = PITCH_CLASSES[note]
+  if (pitchClass == null) throw new Error(`无法识别音名：${note}`)
+  return pitchClass
+}
+
 /** 从上到下：一弦（高音 E）到六弦（低音 E）。 */
 export const OPEN_STRING_PITCH_CLASSES = [4, 11, 7, 2, 9, 4] as const
 
@@ -99,7 +105,7 @@ export function makeLocateQuestion(
       key,
       degree,
       targetNote,
-      targetPitchClass: PITCH_CLASSES[targetNote],
+      targetPitchClass: noteToPitchClass(targetNote),
       id: `${key}-${degree}`,
     }
   } while (
