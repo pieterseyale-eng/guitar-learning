@@ -37,7 +37,7 @@ export interface FretboardSvgProps {
 }
 
 const DEFAULT_WIDTH = 1820
-const DEFAULT_HEIGHT = 440
+const DEFAULT_HEIGHT = 380
 const BOARD_LEFT = 96
 const BOARD_TOP = 42
 const OPEN_WIDTH = 52
@@ -335,32 +335,6 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           fontFamily="system-ui, sans-serif"
         >
           {name}
-        </text>
-      ))}
-
-      <text
-        x={BOARD_LEFT}
-        y={BOARD_TOP + BOARD_HEIGHT + 42}
-        textAnchor="middle"
-        fill="#d8cdb9"
-        fontSize={13}
-        fontWeight={700}
-        fontFamily="system-ui, sans-serif"
-      >
-        0
-      </text>
-
-      {Array.from({ length: MAX_FRET }, (_, i) => (
-        <text
-          key={`number-${i + 1}`}
-          x={getFretX(i + 1)}
-          y={BOARD_TOP + BOARD_HEIGHT + 42}
-          textAnchor="middle"
-          fill="#aaa49b"
-          fontSize={i >= 19 ? 11 : 12}
-          fontFamily="system-ui, sans-serif"
-        >
-          {i + 1}
         </text>
       ))}
 
