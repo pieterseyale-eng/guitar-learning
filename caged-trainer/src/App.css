@@ -684,7 +684,8 @@
 .app-feedback p.correct { color: #67d4a2; }
 .app-feedback p.wrong { color: #ed777b; }
 
-@media (max-width: 1180px) {
+/* iPadOS 横屏的“桌面网站”视口可能达到 1366px，仍应完整显示 24 品。 */
+@media (max-width: 1366px) {
   .fretboard-scroll {
     overflow-x: hidden;
   }
