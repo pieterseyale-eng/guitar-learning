@@ -1,67 +1,149 @@
-import type { FC } from 'react'
+import type { FC, KeyboardEvent } from 'react'
 
 const STRING_NAMES = ['E', 'B', 'G', 'D', 'A', 'E'] as const
 const STRINGS = 6
-const FRETS = 16
+export const MAX_FRET = 24
+
+export type FretboardDotState =
+  | 'default'
+  | 'highlight'
+  | 'selected'
+  | 'correct'
+  | 'wrong'
+  | 'missed'
 
 export interface FretboardDot {
   stringIndex: number
   fret: number
   highlight?: boolean
-  /** Debug 时显示在点旁的文本，如度数或 (s,f) */
+  state?: FretboardDotState
   label?: string
+}
+
+export interface FretboardPosition {
+  stringIndex: number
+  fret: number
 }
 
 export interface FretboardSvgProps {
   width?: number
   height?: number
   dots?: FretboardDot[]
-  /** Debug 时绘制的 root 点位置 */
-  root?: { stringIndex: number; fret: number }
+  root?: FretboardPosition
+  interactive?: boolean
+  disabled?: boolean
+  enabledStringIndices?: readonly number[]
+  onPositionClick?: (position: FretboardPosition) => void
 }
 
-const DEFAULT_WIDTH = 720
-const DEFAULT_HEIGHT = 280
-const LABEL_LEFT = 28
-const LABEL_BOTTOM = 24
-const FRET_WIDTH = 40
-const STRING_SPACING = 36
+const DEFAULT_WIDTH = 1820
+const DEFAULT_HEIGHT = 390
+const BOARD_LEFT = 96
+const BOARD_TOP = 42
+const OPEN_WIDTH = 52
+const STRING_SPACING = 50
+const BOARD_HEIGHT = (STRINGS - 1) * STRING_SPACING
+const BOARD_WIDTH = 1680
+/** Fender 常见 Stratocaster / Telecaster 弦长：25.5 英寸（648 mm）。 */
+const SCALE_LENGTH_MM = 648
+const FRETBOARD_END_MM =
+  SCALE_LENGTH_MM * (1 - 2 ** (-MAX_FRET / 12))
 
-/** 弦线粗细：从上（高音 E）到下（低音 E）依次变粗 */
-const STRING_STROKE_WIDTHS = [1, 1.35, 1.7, 2.05, 2.4, 2.8]
+const STRING_STROKE_WIDTHS = [1.1, 1.45, 1.85, 2.25, 2.7, 3.15]
+const SINGLE_MARKER_FRETS = [3, 5, 7, 9, 15, 17, 19, 21] as const
+const DOUBLE_MARKER_FRETS = [12, 24] as const
 
-/** Fender 风格品记：3、5、7、9、15 单点，12 品双点 */
-const FRET_MARKERS: { fret: number; offset: number }[] = [
-  { fret: 3, offset: 0 },
-  { fret: 5, offset: 0 },
-  { fret: 7, offset: 0 },
-  { fret: 9, offset: 0 },
-  { fret: 12, offset: -6 },
-  { fret: 12, offset: 6 },
-  { fret: 15, offset: 0 },
-]
-const FRET_MARKER_Y = 8
-const FRET_MARKER_R = 4
+const DOT_COLORS: Record<
+  FretboardDotState,
+  { fill: string; stroke: string; text: string; radius: number }
+> = {
+  default: {
+    fill: 'rgba(217, 195, 153, 0.55)',
+    stroke: 'rgba(245, 220, 170, 0.85)',
+    text: '#fffaf0',
+    radius: 11,
+  },
+  highlight: {
+    fill: '#f3c969',
+    stroke: '#fff0b5',
+    text: '#2b2115',
+    radius: 14,
+  },
+  selected: {
+    fill: '#4b9ed8',
+    stroke: '#b9e4ff',
+    text: '#ffffff',
+    radius: 14,
+  },
+  correct: {
+    fill: '#41b883',
+    stroke: '#baf4d8',
+    text: '#ffffff',
+    radius: 15,
+  },
+  wrong: {
+    fill: '#df5e62',
+    stroke: '#ffd0d2',
+    text: '#ffffff',
+    radius: 15,
+  },
+  missed: {
+    fill: '#e4aa3a',
+    stroke: '#ffe3a7',
+    text: '#2b2115',
+    radius: 15,
+  },
+}
 
-/** 指板正面品记：白色圆点。3、5、7、9、15 品各一个（G/D 弦之间），12 品两个（B/G 之间、D/A 之间）。半径略大但不压弦、不压品丝 */
-const INLAY_SINGLE_FRETS = [3, 5, 7, 9, 15] as const
-const INLAY_R = 10
+function getDotPosition(stringIndex: number, fret: number) {
+  return {
+    cx: fret === 0 ? BOARD_LEFT - OPEN_WIDTH / 2 : getFretCenterX(fret),
+    cy: BOARD_TOP + stringIndex * STRING_SPACING,
+  }
+}
+
+/** 十二平均律：第 n 品离琴枕的距离 d = L × (1 - 2^(-n/12))。 */
+function getFretDistanceMm(fret: number): number {
+  return SCALE_LENGTH_MM * (1 - 2 ** (-fret / 12))
+}
+
+function getFretX(fret: number): number {
+  return BOARD_LEFT + (getFretDistanceMm(fret) / FRETBOARD_END_MM) * BOARD_WIDTH
+}
+
+function getFretCenterX(fret: number): number {
+  return (getFretX(fret - 1) + getFretX(fret)) / 2
+}
 
 const FretboardSvg: FC<FretboardSvgProps> = ({
   width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   dots = [],
   root,
+  interactive = false,
+  disabled = false,
+  enabledStringIndices,
+  onPositionClick,
 }) => {
-  const boardLeft = LABEL_LEFT
-  const boardTop = 20
-  const boardWidth = FRETS * FRET_WIDTH
-  const boardHeight = (STRINGS - 1) * STRING_SPACING
+  const enabledStrings = new Set(
+    enabledStringIndices ?? Array.from({ length: STRINGS }, (_, index) => index)
+  )
 
-  const getDotPosition = (stringIndex: number, fret: number) => ({
-    cx: boardLeft + (fret - 0.5) * FRET_WIDTH,
-    cy: boardTop + stringIndex * STRING_SPACING,
-  })
+  const activatePosition = (position: FretboardPosition) => {
+    if (!disabled && enabledStrings.has(position.stringIndex)) {
+      onPositionClick?.(position)
+    }
+  }
+
+  const handlePositionKeyDown = (
+    event: KeyboardEvent<SVGGElement>,
+    position: FretboardPosition
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      activatePosition(position)
+    }
+  }
 
   return (
     <svg
@@ -69,199 +151,226 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       xmlns="http://www.w3.org/2000/svg"
-      className="fretboard-svg"
+      className={`fretboard-svg ${interactive ? 'is-interactive' : ''}`}
+      aria-label={`吉他指板，开放弦到第 ${MAX_FRET} 品`}
+      role="img"
     >
-      {/* 指板背景 */}
+      <defs>
+        <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#2a1812" />
+          <stop offset="46%" stopColor="#4b2b1e" />
+          <stop offset="100%" stopColor="#261611" />
+        </linearGradient>
+        <filter id="dotShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.5" />
+        </filter>
+      </defs>
+
+      <text
+        x={BOARD_LEFT - OPEN_WIDTH / 2}
+        y={18}
+        textAnchor="middle"
+        fill="#a9a39a"
+        fontSize={13}
+        fontFamily="system-ui, sans-serif"
+      >
+        空弦
+      </text>
+
       <rect
-        x={boardLeft}
-        y={boardTop}
-        width={boardWidth}
-        height={boardHeight}
-        fill="#2d1810"
-        stroke="#5c4033"
-        strokeWidth={1}
+        x={BOARD_LEFT}
+        y={BOARD_TOP}
+        width={BOARD_WIDTH}
+        height={BOARD_HEIGHT}
+        rx={3}
+        fill="url(#wood)"
+        stroke="#6b4938"
+        strokeWidth={1.5}
       />
-      {/* 琴枕（0品）竖线 */}
-      <line
-        x1={boardLeft}
-        y1={boardTop}
-        x2={boardLeft}
-        y2={boardTop + boardHeight}
-        stroke="#8b7355"
-        strokeWidth={3}
-      />
-      {/* 品丝竖线 1..16 */}
-      {Array.from({ length: FRETS }, (_, i) => (
+
+      {Array.from({ length: MAX_FRET }, (_, i) => (
         <line
-          key={i}
-          x1={boardLeft + (i + 1) * FRET_WIDTH}
-          y1={boardTop}
-          x2={boardLeft + (i + 1) * FRET_WIDTH}
-          y2={boardTop + boardHeight}
-          stroke="#5c4033"
-          strokeWidth={1}
+          key={`fret-${i + 1}`}
+          x1={getFretX(i + 1)}
+          y1={BOARD_TOP}
+          x2={getFretX(i + 1)}
+          y2={BOARD_TOP + BOARD_HEIGHT}
+          stroke="#9a8e80"
+          strokeOpacity={0.58}
+          strokeWidth={i === MAX_FRET - 1 ? 2 : 1}
         />
       ))}
-      {/* 弦线 0..5：最下边最粗，依次往上变细，灰色便于在浅色背景下看清 */}
+
+      <line
+        x1={BOARD_LEFT}
+        y1={BOARD_TOP - 1}
+        x2={BOARD_LEFT}
+        y2={BOARD_TOP + BOARD_HEIGHT + 1}
+        stroke="#e0d4bd"
+        strokeWidth={5}
+      />
+
+      {SINGLE_MARKER_FRETS.map((fret) => (
+        <circle
+          key={`inlay-${fret}`}
+          cx={getFretCenterX(fret)}
+          cy={BOARD_TOP + 2.5 * STRING_SPACING}
+          r={8}
+          fill="#d5cdc0"
+          opacity={0.72}
+        />
+      ))}
+
+      {DOUBLE_MARKER_FRETS.flatMap((fret) =>
+        [1.5, 3.5].map((stringOffset) => (
+          <circle
+            key={`inlay-${fret}-${stringOffset}`}
+            cx={getFretCenterX(fret)}
+            cy={BOARD_TOP + stringOffset * STRING_SPACING}
+            r={8}
+            fill="#d5cdc0"
+            opacity={0.72}
+          />
+        ))
+      )}
+
       {Array.from({ length: STRINGS }, (_, i) => (
         <line
-          key={i}
-          x1={boardLeft}
-          y1={boardTop + i * STRING_SPACING}
-          x2={boardLeft + boardWidth}
-          y2={boardTop + i * STRING_SPACING}
-          stroke="#6b6b6b"
+          key={`string-${i}`}
+          x1={BOARD_LEFT - OPEN_WIDTH}
+          y1={BOARD_TOP + i * STRING_SPACING}
+          x2={BOARD_LEFT + BOARD_WIDTH}
+          y2={BOARD_TOP + i * STRING_SPACING}
+          stroke="#b8b5ae"
           strokeWidth={STRING_STROKE_WIDTHS[i]}
         />
       ))}
-      {/* 指板正面品记：白色圆点。3、5、7、9、15 单点（G/D 间），12 品双点（B/G 间、D/A 间） */}
-      {INLAY_SINGLE_FRETS.map((fret) => (
-        <circle
-          key={`inlay-${fret}`}
-          cx={boardLeft + (fret - 0.5) * FRET_WIDTH}
-          cy={boardTop + 2.5 * STRING_SPACING}
-          r={INLAY_R}
-          fill="#d4d0c8"
-        />
-      ))}
-      <circle
-        cx={boardLeft + (12 - 0.5) * FRET_WIDTH}
-        cy={boardTop + 1.5 * STRING_SPACING}
-        r={INLAY_R}
-        fill="#d4d0c8"
-      />
-      <circle
-        cx={boardLeft + (12 - 0.5) * FRET_WIDTH}
-        cy={boardTop + 3.5 * STRING_SPACING}
-        r={INLAY_R}
-        fill="#d4d0c8"
-      />
-      {/* 左侧弦名 E B G D A E */}
+
       {STRING_NAMES.map((name, i) => (
         <text
-          key={i}
-          x={boardLeft - 10}
-          y={boardTop + i * STRING_SPACING + 5}
-          textAnchor="end"
+          key={`name-${i}`}
+          x={18}
+          y={BOARD_TOP + i * STRING_SPACING}
+          textAnchor="middle"
           dominantBaseline="middle"
-          fill="#eee"
-          fontSize={14}
+          fill="#e7e2da"
+          fontSize={16}
+          fontWeight={700}
           fontFamily="system-ui, sans-serif"
         >
           {name}
         </text>
       ))}
-      {/* 品记（Fender 风格）：3、5、7、9、15 单点，12 品双点 */}
-      {FRET_MARKERS.map(({ fret, offset }, i) => (
-        <circle
-          key={`marker-${fret}-${i}`}
-          cx={boardLeft + (fret - 0.5) * FRET_WIDTH + offset}
-          cy={boardTop + boardHeight + FRET_MARKER_Y}
-          r={FRET_MARKER_R}
-          fill="rgba(255,255,255,0.35)"
-          stroke="rgba(255,255,255,0.5)"
-          strokeWidth={0.8}
-        />
-      ))}
-      {/* 底部品位 1..16 */}
-      {Array.from({ length: FRETS }, (_, i) => (
+
+      <text
+        x={BOARD_LEFT - OPEN_WIDTH / 2}
+        y={BOARD_TOP + BOARD_HEIGHT + 42}
+        textAnchor="middle"
+        fill="#aaa49b"
+        fontSize={13}
+        fontFamily="system-ui, sans-serif"
+      >
+        0
+      </text>
+
+      {Array.from({ length: MAX_FRET }, (_, i) => (
         <text
-          key={i}
-          x={boardLeft + (i + 0.5) * FRET_WIDTH}
-          y={boardTop + boardHeight + LABEL_BOTTOM - 6}
+          key={`number-${i + 1}`}
+          x={getFretCenterX(i + 1)}
+          y={BOARD_TOP + BOARD_HEIGHT + 42}
           textAnchor="middle"
-          fill="#aaa"
-          fontSize={12}
+          fill="#aaa49b"
+          fontSize={13}
           fontFamily="system-ui, sans-serif"
         >
           {i + 1}
         </text>
       ))}
-      {/* Debug: root 点 */}
+
       {root != null && (() => {
         const { cx, cy } = getDotPosition(root.stringIndex, root.fret)
         return (
-          <g key="root">
+          <circle
+            cx={cx}
+            cy={cy}
+            r={17}
+            fill="none"
+            stroke="#4fc3f7"
+            strokeWidth={2.5}
+          />
+        )
+      })()}
+
+      {dots.map((dot, index) => {
+        const { cx, cy } = getDotPosition(dot.stringIndex, dot.fret)
+        const state = dot.state ?? (dot.highlight ? 'highlight' : 'default')
+        const colors = DOT_COLORS[state]
+        return (
+          <g
+            key={`dot-${index}-${dot.stringIndex}-${dot.fret}`}
+            filter="url(#dotShadow)"
+            pointerEvents="none"
+          >
             <circle
               cx={cx}
               cy={cy}
-              r={12}
-              fill="none"
-              stroke="#0af"
-              strokeWidth={2.5}
+              r={colors.radius}
+              fill={colors.fill}
+              stroke={colors.stroke}
+              strokeWidth={2}
             />
-            <text
-              x={cx}
-              y={cy - 16}
-              textAnchor="middle"
-              fill="#0af"
-              fontSize={11}
-              fontFamily="system-ui, sans-serif"
-            >
-              R ({root.stringIndex},{root.fret})
-            </text>
+            {dot.label != null && (
+              <text
+                x={cx}
+                y={cy}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={colors.text}
+                fontSize={dot.label.length > 1 ? 10 : 12}
+                fontWeight={800}
+                fontFamily="system-ui, sans-serif"
+              >
+                {dot.label}
+              </text>
+            )}
           </g>
         )
-      })()}
-      {/* 圆点：先画淡色，再画高亮（高亮在上层） */}
-      {dots
-        .filter((d) => !d.highlight)
-        .map((d, i) => {
-          const { cx, cy } = getDotPosition(d.stringIndex, d.fret)
-          return (
-            <g key={`fade-${i}-${d.stringIndex}-${d.fret}`}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={10}
-                fill="rgba(200, 180, 140, 0.5)"
-                stroke="rgba(180, 160, 120, 0.8)"
-                strokeWidth={1}
-              />
-              {d.label != null && (
-                <text
-                  x={cx + 14}
-                  y={cy + 4}
-                  textAnchor="start"
-                  fill="rgba(255,255,255,0.9)"
-                  fontSize={10}
-                  fontFamily="system-ui, sans-serif"
-                >
-                  {d.label}
-                </text>
-              )}
-            </g>
-          )
-        })}
-      {dots
-        .filter((d) => d.highlight)
-        .map((d, i) => {
-          const { cx, cy } = getDotPosition(d.stringIndex, d.fret)
-          return (
-            <g key={`hl-${i}-${d.stringIndex}-${d.fret}`}>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={12}
-                fill="#f4d03f"
-                stroke="#d4a017"
-                strokeWidth={2}
-              />
-              {d.label != null && (
-                <text
-                  x={cx + 14}
-                  y={cy + 4}
-                  textAnchor="start"
-                  fill="#f4d03f"
-                  fontSize={10}
-                  fontFamily="system-ui, sans-serif"
-                >
-                  {d.label}
-                </text>
-              )}
-            </g>
-          )
-        })}
+      })}
+
+      {interactive &&
+        Array.from({ length: STRINGS }, (_, stringIndex) =>
+          enabledStrings.has(stringIndex)
+            ? Array.from({ length: MAX_FRET + 1 }, (_, fret) => {
+            const position = { stringIndex, fret }
+            const x =
+              fret === 0
+                ? BOARD_LEFT - OPEN_WIDTH
+                : getFretX(fret - 1)
+            const fretCellWidth =
+              fret === 0 ? OPEN_WIDTH : getFretX(fret) - getFretX(fret - 1)
+            return (
+              <g
+                key={`target-${stringIndex}-${fret}`}
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                aria-label={`${STRING_NAMES[stringIndex]}弦，第 ${fret} 品`}
+                aria-disabled={disabled}
+                className="fret-position-target"
+                onClick={() => activatePosition(position)}
+                onKeyDown={(event) => handlePositionKeyDown(event, position)}
+              >
+                <rect
+                  x={x}
+                  y={BOARD_TOP + stringIndex * STRING_SPACING - STRING_SPACING / 2}
+                  width={fretCellWidth}
+                  height={STRING_SPACING}
+                  fill="transparent"
+                />
+              </g>
+            )
+              })
+            : null
+        )}
     </svg>
   )
 }
