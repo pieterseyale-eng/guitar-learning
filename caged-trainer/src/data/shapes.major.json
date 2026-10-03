@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "tuning": ["E", "B", "G", "D", "A", "E"],
+  "frets": 16,
+  "shapes": [
+    {
+      "shapeId": "E",
+      "name": "E-shape Major (from diagram, 4-fret box)",
+      "anchorFret": 5,
+      "notes": [
+        { "stringIndex": 0, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 0, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 0, "fretOff": 3, "degree": 2 },
+
+        { "stringIndex": 1, "fretOff": 1, "degree": 5 },
+        { "stringIndex": 1, "fretOff": 3, "degree": 6 },
+
+        { "stringIndex": 2, "fretOff": 0, "degree": 2 },
+        { "stringIndex": 2, "fretOff": 2, "degree": 3 },
+        { "stringIndex": 2, "fretOff": 3, "degree": 4 },
+
+        { "stringIndex": 3, "fretOff": 0, "degree": 6 },
+        { "stringIndex": 3, "fretOff": 2, "degree": 7 },
+        { "stringIndex": 3, "fretOff": 3, "degree": 1 },
+
+        { "stringIndex": 4, "fretOff": 0, "degree": 3 },
+        { "stringIndex": 4, "fretOff": 1, "degree": 4 },
+        { "stringIndex": 4, "fretOff": 3, "degree": 5 },
+
+        { "stringIndex": 5, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 5, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 5, "fretOff": 3, "degree": 2 }
+      ]
+    },
+
+    {
+      "shapeId": "C",
+      "name": "C-shape Major (from diagram, 4-fret box)",
+      "anchorFret": 5,
+      "notes": [
+        { "stringIndex": 0, "fretOff": 0, "degree": 3 },
+        { "stringIndex": 0, "fretOff": 1, "degree": 4 },
+        { "stringIndex": 0, "fretOff": 3, "degree": 5 },
+
+        { "stringIndex": 1, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 1, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 1, "fretOff": 3, "degree": 2 },
+
+        { "stringIndex": 2, "fretOff": 0, "degree": 5 },
+        { "stringIndex": 2, "fretOff": 2, "degree": 6 },
+
+        { "stringIndex": 3, "fretOff": 0, "degree": 2 },
+        { "stringIndex": 3, "fretOff": 2, "degree": 3 },
+        { "stringIndex": 3, "fretOff": 3, "degree": 4 },
+
+        { "stringIndex": 4, "fretOff": 0, "degree": 6 },
+        { "stringIndex": 4, "fretOff": 2, "degree": 7 },
+        { "stringIndex": 4, "fretOff": 3, "degree": 1 },
+
+        { "stringIndex": 5, "fretOff": 0, "degree": 3 },
+        { "stringIndex": 5, "fretOff": 1, "degree": 4 },
+        { "stringIndex": 5, "fretOff": 3, "degree": 5 }
+      ]
+    },
+
+    {
+      "shapeId": "G",
+      "name": "G-shape Major (from diagram, normalized to 4 columns)",
+      "anchorFret": 5,
+      "notes": [
+        { "stringIndex": 0, "fretOff": 1, "degree": 6 },
+        { "stringIndex": 0, "fretOff": 3, "degree": 7 },
+        { "stringIndex": 0, "fretOff": 4, "degree": 1 },
+
+        { "stringIndex": 1, "fretOff": 1, "degree": 3 },
+        { "stringIndex": 1, "fretOff": 2, "degree": 4 },
+        { "stringIndex": 1, "fretOff": 4, "degree": 5 },
+
+        { "stringIndex": 2, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 2, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 2, "fretOff": 3, "degree": 2 },
+
+        { "stringIndex": 3, "fretOff": 1, "degree": 5 },
+        { "stringIndex": 3, "fretOff": 3, "degree": 6 },
+
+        { "stringIndex": 4, "fretOff": 1, "degree": 2 },
+        { "stringIndex": 4, "fretOff": 3, "degree": 3 },
+        { "stringIndex": 4, "fretOff": 4, "degree": 4 },
+
+        { "stringIndex": 5, "fretOff": 1, "degree": 6 },
+        { "stringIndex": 5, "fretOff": 3, "degree": 7 },
+        { "stringIndex": 5, "fretOff": 4, "degree": 1 }
+      ]
+    },
+
+    {
+      "shapeId": "D",
+      "name": "D-shape Major (from diagram, normalized to 4 columns)",
+      "anchorFret": 5,
+      "notes": [
+        { "stringIndex": 0, "fretOff": 1, "degree": 2 },
+        { "stringIndex": 0, "fretOff": 3, "degree": 3 },
+        { "stringIndex": 0, "fretOff": 4, "degree": 4 },
+
+        { "stringIndex": 1, "fretOff": 1, "degree": 6 },
+        { "stringIndex": 1, "fretOff": 3, "degree": 7 },
+        { "stringIndex": 1, "fretOff": 4, "degree": 1 },
+
+        { "stringIndex": 2, "fretOff": 0, "degree": 3 },
+        { "stringIndex": 2, "fretOff": 1, "degree": 4 },
+        { "stringIndex": 2, "fretOff": 3, "degree": 5 },
+
+        { "stringIndex": 3, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 3, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 3, "fretOff": 3, "degree": 2 },
+
+        { "stringIndex": 4, "fretOff": 1, "degree": 5 },
+        { "stringIndex": 4, "fretOff": 3, "degree": 6 },
+
+        { "stringIndex": 5, "fretOff": 1, "degree": 2 },
+        { "stringIndex": 5, "fretOff": 3, "degree": 3 },
+        { "stringIndex": 5, "fretOff": 4, "degree": 4 }
+      ]
+    },
+
+    {
+      "shapeId": "A",
+      "name": "A-shape Major (from diagram, normalized to 4 columns)",
+      "anchorFret": 5,
+      "notes": [
+        { "stringIndex": 0, "fretOff": 1, "degree": 5 },
+        { "stringIndex": 0, "fretOff": 3, "degree": 6 },
+
+        { "stringIndex": 1, "fretOff": 1, "degree": 2 },
+        { "stringIndex": 1, "fretOff": 3, "degree": 3 },
+        { "stringIndex": 1, "fretOff": 4, "degree": 4 },
+
+        { "stringIndex": 2, "fretOff": 0, "degree": 6 },
+        { "stringIndex": 2, "fretOff": 2, "degree": 7 },
+        { "stringIndex": 2, "fretOff": 3, "degree": 1 },
+
+        { "stringIndex": 3, "fretOff": 0, "degree": 3 },
+        { "stringIndex": 3, "fretOff": 1, "degree": 4 },
+        { "stringIndex": 3, "fretOff": 3, "degree": 5 },
+
+        { "stringIndex": 4, "fretOff": 0, "degree": 7 },
+        { "stringIndex": 4, "fretOff": 1, "degree": 1 },
+        { "stringIndex": 4, "fretOff": 3, "degree": 2 },
+
+        { "stringIndex": 5, "fretOff": 1, "degree": 5 },
+        { "stringIndex": 5, "fretOff": 3, "degree": 6 }
+      ]
+    }
+  ]
+}

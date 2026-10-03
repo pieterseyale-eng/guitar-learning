@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="八个自然大调的级数和弦随机训练游戏">
+  <title>大调级数和弦训练 小程序</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20252d;
+      --muted: #737b88;
+      --paper: rgba(255, 255, 255, 0.86);
+      --line: rgba(39, 46, 58, 0.12);
+      --accent: #795548;
+      --accent-deep: #51372f;
+      --gold: #d79b3f;
+      --good: #23845d;
+      --bad: #c24e4e;
+      --shadow: 0 24px 70px rgba(63, 45, 35, 0.17);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 32px 18px;
+      display: grid;
+      place-items: center;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(234, 185, 104, 0.32), transparent 28rem),
+        radial-gradient(circle at 88% 86%, rgba(102, 137, 128, 0.24), transparent 30rem),
+        linear-gradient(135deg, #f4eee3 0%, #ede7dc 48%, #e4ebe7 100%);
+    }
+
+    body::before,
+    body::after {
+      content: "♫";
+      position: fixed;
+      z-index: -1;
+      color: rgba(81, 55, 47, 0.055);
+      font-family: Georgia, serif;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    body::before {
+      top: -70px;
+      left: -35px;
+      font-size: 300px;
+      transform: rotate(-12deg);
+    }
+
+    body::after {
+      right: -30px;
+      bottom: -90px;
+      font-size: 330px;
+      transform: rotate(18deg);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      padding: clamp(24px, 5vw, 48px);
+      border: 0;
+      background: transparent;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: clamp(30px, 5vw, 48px);
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(64px, 1fr));
+      flex: 0 0 auto;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .stat {
+      min-width: 72px;
+      padding: 10px 13px;
+      text-align: center;
+    }
+
+    .stat + .stat {
+      border-left: 1px solid var(--line);
+    }
+
+    .stat strong,
+    .stat span {
+      display: block;
+    }
+
+    .stat strong {
+      font-family: Georgia, serif;
+      font-size: 23px;
+      line-height: 1.05;
+    }
+
+    .stat span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .settings {
+      padding: 26px 0 4px;
+    }
+
+    .settings-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .settings-title h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .text-button {
+      padding: 5px 0;
+      border: 0;
+      color: var(--accent);
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .text-button:hover {
+      color: var(--accent-deep);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 9px;
+    }
+
+    .key-choice {
+      position: relative;
+      display: block;
+      min-width: 0;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .key-choice input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .key-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.54);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .key-name {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .checkmark {
+      display: grid;
+      width: 17px;
+      height: 17px;
+      place-items: center;
+      border: 1.5px solid #a8a8a5;
+      border-radius: 5px;
+      color: white;
+      font-size: 12px;
+      line-height: 1;
+      transition: 160ms ease;
+    }
+
+    .key-choice:hover .key-card {
+      transform: translateY(-2px);
+      border-color: rgba(121, 85, 72, 0.35);
+    }
+
+    .key-choice input:focus-visible + .key-card {
+      outline: 3px solid rgba(215, 155, 63, 0.32);
+      outline-offset: 2px;
+    }
+
+    .key-choice input:checked + .key-card {
+      border-color: rgba(121, 85, 72, 0.38);
+      background: rgba(121, 85, 72, 0.1);
+      box-shadow: inset 0 -2px 0 rgba(121, 85, 72, 0.08);
+    }
+
+    .key-choice input:checked + .key-card .checkmark {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .quiz {
+      position: relative;
+      min-height: 360px;
+      margin-top: 26px;
+      padding: clamp(32px, 6vw, 56px);
+      overflow: hidden;
+      border-radius: 24px;
+      color: #fffaf3;
+      text-align: center;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 45%),
+        linear-gradient(130deg, #604238, #2e3435 105%);
+      box-shadow: 0 18px 42px rgba(61, 43, 36, 0.22);
+    }
+
+    .quiz::before {
+      content: "♪";
+      position: absolute;
+      top: -52px;
+      right: 17px;
+      color: rgba(255, 255, 255, 0.045);
+      font-family: Georgia, serif;
+      font-size: 230px;
+      transform: rotate(9deg);
+    }
+
+    .question-count {
+      position: relative;
+      margin: 0 0 15px;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .question {
+      position: relative;
+      min-height: 69px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: clamp(27px, 5vw, 42px);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .question .music-token {
+      color: #f2c77f;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .answer-row {
+      position: relative;
+      display: flex;
+      width: min(520px, 100%);
+      margin: 28px auto 0;
+      gap: 10px;
+    }
+
+    .answer-input {
+      width: 100%;
+      min-width: 0;
+      padding: 15px 18px;
+      border: 2px solid transparent;
+      border-radius: 13px;
+      outline: 0;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 20px;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .answer-input::placeholder {
+      color: #9da0a4;
+      font-family: "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+
+    .answer-input:focus {
+      border-color: #e0ad5c;
+      box-shadow: 0 0 0 4px rgba(224, 173, 92, 0.17), 0 7px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .answer-input.correct {
+      border-color: #54bd91;
+    }
+
+    .answer-input.wrong {
+      border-color: #e27575;
+      animation: shake 260ms ease;
+    }
+
+    .primary-button {
+      flex: 0 0 auto;
+      min-width: 112px;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 13px;
+      color: #3c2d20;
+      background: linear-gradient(180deg, #f1c77f, #dda650);
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.19);
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    .primary-button:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .primary-button:active {
+      transform: translateY(1px);
+    }
+
+    .primary-button:disabled,
+    .answer-input:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .feedback {
+      position: relative;
+      min-height: 25px;
+      margin: 18px 0 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .feedback.good {
+      color: #75dbaf;
+    }
+
+    .feedback.bad {
+      color: #ff9c9c;
+    }
+
+    .hint {
+      position: relative;
+      margin: 7px 0 0;
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 12px;
+    }
+
+    .empty-message {
+      color: #f2c77f;
+    }
+
+    @keyframes shake {
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-3px); }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 14px;
+        place-items: start center;
+      }
+
+      .app {
+        padding: 22px 16px;
+        border-radius: 22px;
+      }
+
+      .masthead {
+        display: block;
+      }
+
+      .scoreboard {
+        margin-top: 20px;
+      }
+
+      .key-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .quiz {
+        min-height: 345px;
+        padding: 38px 18px 28px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .answer-row {
+        display: grid;
+      }
+
+      .primary-button {
+        min-height: 51px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Chord Memory</p>
+        <h1>大调级数和弦训练 小程序</h1>
+        <p class="subtitle">选好要练习的调，凭记忆写下每一级的和弦。</p>
+      </div>
+
+      <section class="scoreboard" aria-label="训练成绩">
+        <div class="stat"><strong id="correctCount">0</strong><span>答对</span></div>
+        <div class="stat"><strong id="accuracy">—</strong><span>正确率</span></div>
+        <div class="stat"><strong id="streak">0</strong><span>连续</span></div>
+      </section>
+    </header>
+
+    <section class="settings" aria-labelledby="keyTitle">
+      <div class="settings-title">
+        <h2 id="keyTitle">选择练习调性</h2>
+        <button class="text-button" id="toggleAll" type="button">取消全选</button>
+      </div>
+      <div class="key-grid" id="keyGrid"></div>
+    </section>
+
+    <section class="quiz" aria-live="polite">
+      <p class="question-count" id="questionCount">第 1 题</p>
+      <h2 class="question" id="question">正在准备题目…</h2>
+
+      <form class="answer-row" id="answerForm" autocomplete="off">
+        <label for="answer" hidden>和弦答案</label>
+        <input
+          class="answer-input"
+          id="answer"
+          type="text"
+          inputmode="text"
+          spellcheck="false"
+          placeholder="输入和弦，例如 Bm"
+          aria-describedby="feedback inputHint"
+        >
+        <button class="primary-button" id="submitButton" type="submit">确认答案</button>
+      </form>
+
+      <p class="feedback" id="feedback"></p>
+      <p class="hint" id="inputHint">按 Enter 确认，再按一次进入下一题</p>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const DEGREE_CN = ["一", "二", "三", "四", "五", "六", "七"];
+    const QUALITIES = ["", "m", "m", "", "", "m", "dim"];
+    const SCALES = {
+      C:  ["C", "D", "E", "F", "G", "A", "B"],
+      G:  ["G", "A", "B", "C", "D", "E", "F#"],
+      D:  ["D", "E", "F#", "G", "A", "B", "C#"],
+      A:  ["A", "B", "C#", "D", "E", "F#", "G#"],
+      E:  ["E", "F#", "G#", "A", "B", "C#", "D#"],
+      F:  ["F", "G", "A", "Bb", "C", "D", "E"],
+      Bb: ["Bb", "C", "D", "Eb", "F", "G", "A"],
+      Eb: ["Eb", "F", "G", "Ab", "Bb", "C", "D"]
+    };
+    const KEY_ORDER = ["C", "G", "D", "A", "E", "F", "Bb", "Eb"];
+
+    const keyGrid = document.querySelector("#keyGrid");
+    const toggleAllButton = document.querySelector("#toggleAll");
+    const questionElement = document.querySelector("#question");
+    const questionCountElement = document.querySelector("#questionCount");
+    const answerForm = document.querySelector("#answerForm");
+    const answerInput = document.querySelector("#answer");
+    const submitButton = document.querySelector("#submitButton");
+    const feedbackElement = document.querySelector("#feedback");
+    const correctCountElement = document.querySelector("#correctCount");
+    const accuracyElement = document.querySelector("#accuracy");
+    const streakElement = document.querySelector("#streak");
+
+    let currentQuestion = null;
+    let hasAnswered = false;
+    let total = 0;
+    let correct = 0;
+    let streak = 0;
+
+    function displayNote(note) {
+      return note.replace("b", "♭").replace("#", "♯");
+    }
+
+    function createKeyOptions() {
+      KEY_ORDER.forEach((key) => {
+        const label = document.createElement("label");
+        label.className = "key-choice";
+        label.innerHTML = `
+          <input type="checkbox" value="${key}" checked>
+          <span class="key-card">
+            <span class="key-name">${displayNote(key)}</span>
+            <span class="checkmark" aria-hidden="true">✓</span>
+          </span>
+        `;
+        keyGrid.appendChild(label);
+      });
+    }
+
+    function selectedKeys() {
+      return [...keyGrid.querySelectorAll("input:checked")].map((input) => input.value);
+    }
+
+    function updateToggleLabel() {
+      const selectedCount = selectedKeys().length;
+      toggleAllButton.textContent = selectedCount === KEY_ORDER.length ? "取消全选" : "全部选择";
+    }
+
+    function normalizeAnswer(value) {
+      return value
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/♯/g, "#")
+        .replace(/♭/g, "b")
+        .replace(/[°º]/g, "dim")
+        .toLowerCase();
+    }
+
+    function makeQuestion() {
+      const keys = selectedKeys();
+      if (keys.length === 0) {
+        currentQuestion = null;
+        questionElement.innerHTML = '<span class="empty-message">请至少勾选一个大调</span>';
+        questionCountElement.textContent = "等待选择";
+        answerInput.disabled = true;
+        submitButton.disabled = true;
+        feedbackElement.textContent = "勾选后会立即开始随机出题。";
+        feedbackElement.className = "feedback";
+        return;
+      }
+
+      let next;
+      do {
+        const key = keys[Math.floor(Math.random() * keys.length)];
+        const degree = Math.floor(Math.random() * 7) + 1;
+        next = {
+          key,
+          degree,
+          answer: `${SCALES[key][degree - 1]}${QUALITIES[degree - 1]}`
+        };
+      } while (
+        currentQuestion &&
+        keys.length * 7 > 1 &&
+        next.key === currentQuestion.key &&
+        next.degree === currentQuestion.degree
+      );
+
+      currentQuestion = next;
+      hasAnswered = false;
+      questionCountElement.textContent = `第 ${total + 1} 题`;
+      questionElement.innerHTML = `<span class="music-token">${displayNote(next.key)} 大调</span>的${DEGREE_CN[next.degree - 1]}级是什么和弦？`;
+      answerInput.value = "";
+      answerInput.disabled = false;
+      answerInput.className = "answer-input";
+      submitButton.disabled = false;
+      submitButton.textContent = "确认答案";
+      feedbackElement.textContent = "";
+      feedbackElement.className = "feedback";
+      answerInput.focus();
+    }
+
+    function updateScore() {
+      correctCountElement.textContent = String(correct);
+      accuracyElement.textContent = total === 0 ? "—" : `${Math.round((correct / total) * 100)}%`;
+      streakElement.textContent = String(streak);
+    }
+
+    function checkAnswer() {
+      if (!currentQuestion) return;
+
+      if (hasAnswered) {
+        makeQuestion();
+        return;
+      }
+
+      const given = normalizeAnswer(answerInput.value);
+      if (!given) {
+        feedbackElement.textContent = "先写下你的答案吧。";
+        feedbackElement.className = "feedback bad";
+        answerInput.focus();
+        return;
+      }
+
+      const expected = normalizeAnswer(currentQuestion.answer);
+      const isCorrect = given === expected;
+      total += 1;
+      hasAnswered = true;
+
+      if (isCorrect) {
+        correct += 1;
+        streak += 1;
+        answerInput.classList.add("correct");
+        feedbackElement.textContent = `正确！答案是 ${displayNote(currentQuestion.answer)}`;
+        feedbackElement.className = "feedback good";
+      } else {
+        streak = 0;
+        answerInput.classList.add("wrong");
+        feedbackElement.textContent = `这题的答案是 ${displayNote(currentQuestion.answer)}`;
+        feedbackElement.className = "feedback bad";
+      }
+
+      updateScore();
+      submitButton.textContent = "下一题";
+      submitButton.focus();
+    }
+
+    keyGrid.addEventListener("change", () => {
+      updateToggleLabel();
+      makeQuestion();
+    });
+
+    toggleAllButton.addEventListener("click", () => {
+      const boxes = [...keyGrid.querySelectorAll("input")];
+      const shouldSelectAll = boxes.some((box) => !box.checked);
+      boxes.forEach((box) => { box.checked = shouldSelectAll; });
+      updateToggleLabel();
+      makeQuestion();
+    });
+
+    answerForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      checkAnswer();
+    });
+
+    createKeyOptions();
+    updateToggleLabel();
+    makeQuestion();
+  </script>
+</body>
+</html>
