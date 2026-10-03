@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import FretboardSvg, { MAX_FRET } from './FretboardSvg'
 import type { FretboardDot, FretboardPosition } from './FretboardSvg'
 import {
@@ -75,6 +75,7 @@ function normalizeNoteAnswer(value: string): string {
 }
 
 function App() {
+  const noteAnswerInputRef = useRef<HTMLInputElement>(null)
   const [language, setLanguage] = useState<Language>('zh')
   const t = COPY[language]
   const [mode, setMode] = useState<Mode>('locate')
@@ -216,6 +217,12 @@ function App() {
       if (autoNextTimer != null) window.clearTimeout(autoNextTimer)
     }
   }, [feedback, goNextQuestion, mode])
+
+  useEffect(() => {
+    if (mode === 'note' && feedback == null) {
+      noteAnswerInputRef.current?.focus()
+    }
+  }, [feedback, locateQuestion.id, mode])
 
   const recordAnswer = (isCorrect: boolean) => {
     setTotal((value) => value + 1)
@@ -921,6 +928,7 @@ function App() {
             <label htmlFor="note-answer">{t.noteLabel}</label>
             <div className="note-input-row">
               <input
+                ref={noteAnswerInputRef}
                 id="note-answer"
                 type="text"
                 value={noteAnswer}
