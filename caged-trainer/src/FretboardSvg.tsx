@@ -167,12 +167,13 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <stop offset="46%" stopColor="#4b2b1e" />
           <stop offset="100%" stopColor="#261611" />
         </linearGradient>
-        <linearGradient id="fretMetal" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f8f9f7" />
-          <stop offset="18%" stopColor="#aeb4b7" />
-          <stop offset="48%" stopColor="#e8ecec" />
-          <stop offset="72%" stopColor="#777f83" />
-          <stop offset="100%" stopColor="#d9dddc" />
+        <linearGradient id="fretMetal" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#555b5e" />
+          <stop offset="18%" stopColor="#b9c0c1" />
+          <stop offset="38%" stopColor="#ffffff" />
+          <stop offset="58%" stopColor="#d9dede" />
+          <stop offset="82%" stopColor="#858c8f" />
+          <stop offset="100%" stopColor="#42474a" />
         </linearGradient>
         <linearGradient id="nutMaterial" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#958c7a" />
@@ -219,25 +220,25 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
 
       {Array.from({ length: MAX_FRET }, (_, i) => {
         const x = getFretX(i + 1)
-        const fretWidth = i === MAX_FRET - 1 ? 4.2 : 3.2
+        const fretWidth = i === MAX_FRET - 1 ? 6.4 : 5.2
         return (
           <g key={`fret-${i + 1}`} filter="url(#fretShadow)">
-            <line
-              x1={x}
-              y1={BOARD_TOP + 2}
-              x2={x}
-              y2={BOARD_TOP + BOARD_HEIGHT - 2}
-              stroke="url(#fretMetal)"
-              strokeWidth={fretWidth}
+            <rect
+              x={x - fretWidth / 2}
+              y={BOARD_TOP + 2}
+              width={fretWidth}
+              height={BOARD_HEIGHT - 4}
+              rx={fretWidth / 2}
+              fill="url(#fretMetal)"
             />
             <line
-              x1={x - fretWidth * 0.22}
-              y1={BOARD_TOP + 3}
-              x2={x - fretWidth * 0.22}
-              y2={BOARD_TOP + BOARD_HEIGHT - 3}
+              x1={x - fretWidth * 0.16}
+              y1={BOARD_TOP + 4}
+              x2={x - fretWidth * 0.16}
+              y2={BOARD_TOP + BOARD_HEIGHT - 4}
               stroke="#ffffff"
-              strokeOpacity={0.55}
-              strokeWidth={0.7}
+              strokeOpacity={0.72}
+              strokeWidth={0.9}
             />
           </g>
         )
