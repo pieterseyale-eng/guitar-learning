@@ -316,6 +316,8 @@
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   scrollbar-color: #66503d #1e1f21;
   scrollbar-width: thin;
 }
@@ -681,6 +683,18 @@
 .app-feedback-placeholder { color: #696b70; }
 .app-feedback p.correct { color: #67d4a2; }
 .app-feedback p.wrong { color: #ed777b; }
+
+@media (max-width: 1180px) {
+  .fretboard-scroll {
+    overflow-x: hidden;
+  }
+
+  .app-fretboard .fretboard-svg {
+    width: 100%;
+    min-width: 0;
+    margin-inline: 0;
+  }
+}
 
 @media (max-width: 780px) {
   #root {
