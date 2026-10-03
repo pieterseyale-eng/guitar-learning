@@ -46,6 +46,8 @@ const STRING_EDGE_INSET = 26
 const BOARD_HEIGHT =
   (STRINGS - 1) * STRING_SPACING + STRING_EDGE_INSET * 2
 const BOARD_WIDTH = 1680
+const BOARD_END_EXTENSION = 30
+const BOARD_DRAW_WIDTH = BOARD_WIDTH + BOARD_END_EXTENSION
 /** Fender 常见 Stratocaster / Telecaster 弦长：25.5 英寸（648 mm）。 */
 const SCALE_LENGTH_MM = 648
 const FRETBOARD_END_MM =
@@ -187,7 +189,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           gradientUnits="userSpaceOnUse"
           x1={BOARD_LEFT - OPEN_WIDTH}
           y1="0"
-          x2={BOARD_LEFT + BOARD_WIDTH}
+          x2={BOARD_LEFT + BOARD_DRAW_WIDTH}
           y2="0"
         >
           <stop offset="0%" stopColor="#aeb4b3" />
@@ -210,7 +212,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       <rect
         x={BOARD_LEFT}
         y={BOARD_TOP}
-        width={BOARD_WIDTH}
+        width={BOARD_DRAW_WIDTH}
         height={BOARD_HEIGHT}
         rx={3}
         fill="url(#wood)"
@@ -294,7 +296,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <line
             x1={BOARD_LEFT - OPEN_WIDTH}
             y1={getStringY(i) + 1.2}
-            x2={BOARD_LEFT + BOARD_WIDTH}
+            x2={BOARD_LEFT + BOARD_DRAW_WIDTH}
             y2={getStringY(i) + 1.2}
             stroke="#080605"
             strokeOpacity={0.44}
@@ -303,7 +305,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <line
             x1={BOARD_LEFT - OPEN_WIDTH}
             y1={getStringY(i)}
-            x2={BOARD_LEFT + BOARD_WIDTH}
+            x2={BOARD_LEFT + BOARD_DRAW_WIDTH}
             y2={getStringY(i)}
             stroke="url(#stringMetal)"
             strokeWidth={STRING_STROKE_WIDTHS[i]}
@@ -312,7 +314,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <line
             x1={BOARD_LEFT - OPEN_WIDTH}
             y1={getStringY(i) - 0.45}
-            x2={BOARD_LEFT + BOARD_WIDTH}
+            x2={BOARD_LEFT + BOARD_DRAW_WIDTH}
             y2={getStringY(i) - 0.45}
             stroke="#f7f8f4"
             strokeOpacity={0.72}
