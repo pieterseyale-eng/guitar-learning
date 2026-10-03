@@ -197,6 +197,26 @@ function App() {
     setFeedback(null)
   }, [degreeShapeIds, mode, startFunctionalQuestion, startLocateQuestion])
 
+  useEffect(() => {
+    if (mode !== 'note' || feedback == null) return
+
+    const handleNextQuestionKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Enter') return
+      event.preventDefault()
+      goNextQuestion()
+    }
+
+    window.addEventListener('keydown', handleNextQuestionKey)
+    const autoNextTimer = feedback.isCorrect
+      ? window.setTimeout(goNextQuestion, 500)
+      : null
+
+    return () => {
+      window.removeEventListener('keydown', handleNextQuestionKey)
+      if (autoNextTimer != null) window.clearTimeout(autoNextTimer)
+    }
+  }, [feedback, goNextQuestion, mode])
+
   const recordAnswer = (isCorrect: boolean) => {
     setTotal((value) => value + 1)
     if (isCorrect) {
