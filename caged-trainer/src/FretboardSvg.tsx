@@ -37,12 +37,14 @@ export interface FretboardSvgProps {
 }
 
 const DEFAULT_WIDTH = 1820
-const DEFAULT_HEIGHT = 390
+const DEFAULT_HEIGHT = 440
 const BOARD_LEFT = 96
 const BOARD_TOP = 42
 const OPEN_WIDTH = 52
 const STRING_SPACING = 50
-const BOARD_HEIGHT = (STRINGS - 1) * STRING_SPACING
+const STRING_EDGE_INSET = 26
+const BOARD_HEIGHT =
+  (STRINGS - 1) * STRING_SPACING + STRING_EDGE_INSET * 2
 const BOARD_WIDTH = 1680
 /** Fender 常见 Stratocaster / Telecaster 弦长：25.5 英寸（648 mm）。 */
 const SCALE_LENGTH_MM = 648
@@ -98,8 +100,12 @@ const DOT_COLORS: Record<
 function getDotPosition(stringIndex: number, fret: number) {
   return {
     cx: fret === 0 ? BOARD_LEFT - OPEN_WIDTH / 2 : getFretCenterX(fret),
-    cy: BOARD_TOP + stringIndex * STRING_SPACING,
+    cy: getStringY(stringIndex),
   }
+}
+
+function getStringY(stringIndex: number): number {
+  return BOARD_TOP + STRING_EDGE_INSET + stringIndex * STRING_SPACING
 }
 
 /** 十二平均律：第 n 品离琴枕的距离 d = L × (1 - 2^(-n/12))。 */
@@ -161,21 +167,44 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <stop offset="46%" stopColor="#4b2b1e" />
           <stop offset="100%" stopColor="#261611" />
         </linearGradient>
+        <linearGradient id="fretMetal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f8f9f7" />
+          <stop offset="18%" stopColor="#aeb4b7" />
+          <stop offset="48%" stopColor="#e8ecec" />
+          <stop offset="72%" stopColor="#777f83" />
+          <stop offset="100%" stopColor="#d9dddc" />
+        </linearGradient>
+        <linearGradient id="nutMaterial" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#958c7a" />
+          <stop offset="18%" stopColor="#f1eadb" />
+          <stop offset="48%" stopColor="#fffaf0" />
+          <stop offset="78%" stopColor="#d9cfbc" />
+          <stop offset="100%" stopColor="#827968" />
+        </linearGradient>
+        <linearGradient
+          id="stringMetal"
+          gradientUnits="userSpaceOnUse"
+          x1={BOARD_LEFT - OPEN_WIDTH}
+          y1="0"
+          x2={BOARD_LEFT + BOARD_WIDTH}
+          y2="0"
+        >
+          <stop offset="0%" stopColor="#aeb4b3" />
+          <stop offset="16%" stopColor="#f2f4f1" />
+          <stop offset="43%" stopColor="#a6adac" />
+          <stop offset="70%" stopColor="#e8ebea" />
+          <stop offset="100%" stopColor="#a0a6a5" />
+        </linearGradient>
+        <filter id="fretShadow" x="-100%" y="-5%" width="300%" height="110%">
+          <feDropShadow dx="1.2" dy="0.8" stdDeviation="1" floodColor="#050302" floodOpacity="0.75" />
+        </filter>
+        <filter id="nutShadow" x="-100%" y="-5%" width="300%" height="110%">
+          <feDropShadow dx="2" dy="1" stdDeviation="1.6" floodColor="#050302" floodOpacity="0.8" />
+        </filter>
         <filter id="dotShadow" x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.5" />
         </filter>
       </defs>
-
-      <text
-        x={BOARD_LEFT - OPEN_WIDTH / 2}
-        y={18}
-        textAnchor="middle"
-        fill="#a9a39a"
-        fontSize={13}
-        fontFamily="system-ui, sans-serif"
-      >
-        空弦
-      </text>
 
       <rect
         x={BOARD_LEFT}
@@ -188,33 +217,58 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
         strokeWidth={1.5}
       />
 
-      {Array.from({ length: MAX_FRET }, (_, i) => (
-        <line
-          key={`fret-${i + 1}`}
-          x1={getFretX(i + 1)}
-          y1={BOARD_TOP}
-          x2={getFretX(i + 1)}
-          y2={BOARD_TOP + BOARD_HEIGHT}
-          stroke="#9a8e80"
-          strokeOpacity={0.58}
-          strokeWidth={i === MAX_FRET - 1 ? 2 : 1}
-        />
-      ))}
+      {Array.from({ length: MAX_FRET }, (_, i) => {
+        const x = getFretX(i + 1)
+        const fretWidth = i === MAX_FRET - 1 ? 4.2 : 3.2
+        return (
+          <g key={`fret-${i + 1}`} filter="url(#fretShadow)">
+            <line
+              x1={x}
+              y1={BOARD_TOP + 2}
+              x2={x}
+              y2={BOARD_TOP + BOARD_HEIGHT - 2}
+              stroke="url(#fretMetal)"
+              strokeWidth={fretWidth}
+            />
+            <line
+              x1={x - fretWidth * 0.22}
+              y1={BOARD_TOP + 3}
+              x2={x - fretWidth * 0.22}
+              y2={BOARD_TOP + BOARD_HEIGHT - 3}
+              stroke="#ffffff"
+              strokeOpacity={0.55}
+              strokeWidth={0.7}
+            />
+          </g>
+        )
+      })}
 
-      <line
-        x1={BOARD_LEFT}
-        y1={BOARD_TOP - 1}
-        x2={BOARD_LEFT}
-        y2={BOARD_TOP + BOARD_HEIGHT + 1}
-        stroke="#e0d4bd"
-        strokeWidth={5}
-      />
+      <g aria-label="0品琴枕" filter="url(#nutShadow)">
+        <title>0品 · 琴枕</title>
+        <rect
+          x={BOARD_LEFT - 4.5}
+          y={BOARD_TOP - 3}
+          width={9}
+          height={BOARD_HEIGHT + 6}
+          rx={3.5}
+          fill="url(#nutMaterial)"
+        />
+        <line
+          x1={BOARD_LEFT - 1.4}
+          y1={BOARD_TOP}
+          x2={BOARD_LEFT - 1.4}
+          y2={BOARD_TOP + BOARD_HEIGHT}
+          stroke="#ffffff"
+          strokeOpacity={0.72}
+          strokeWidth={1.1}
+        />
+      </g>
 
       {SINGLE_MARKER_FRETS.map((fret) => (
         <circle
           key={`inlay-${fret}`}
           cx={getFretCenterX(fret)}
-          cy={BOARD_TOP + 2.5 * STRING_SPACING}
+          cy={BOARD_TOP + STRING_EDGE_INSET + 2.5 * STRING_SPACING}
           r={8}
           fill="#d5cdc0"
           opacity={0.72}
@@ -226,7 +280,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
           <circle
             key={`inlay-${fret}-${stringOffset}`}
             cx={getFretCenterX(fret)}
-            cy={BOARD_TOP + stringOffset * STRING_SPACING}
+            cy={BOARD_TOP + STRING_EDGE_INSET + stringOffset * STRING_SPACING}
             r={8}
             fill="#d5cdc0"
             opacity={0.72}
@@ -235,22 +289,43 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       )}
 
       {Array.from({ length: STRINGS }, (_, i) => (
-        <line
-          key={`string-${i}`}
-          x1={BOARD_LEFT - OPEN_WIDTH}
-          y1={BOARD_TOP + i * STRING_SPACING}
-          x2={BOARD_LEFT + BOARD_WIDTH}
-          y2={BOARD_TOP + i * STRING_SPACING}
-          stroke="#b8b5ae"
-          strokeWidth={STRING_STROKE_WIDTHS[i]}
-        />
+        <g key={`string-${i}`}>
+          <line
+            x1={BOARD_LEFT - OPEN_WIDTH}
+            y1={getStringY(i) + 1.2}
+            x2={BOARD_LEFT + BOARD_WIDTH}
+            y2={getStringY(i) + 1.2}
+            stroke="#080605"
+            strokeOpacity={0.44}
+            strokeWidth={STRING_STROKE_WIDTHS[i] + 0.9}
+          />
+          <line
+            x1={BOARD_LEFT - OPEN_WIDTH}
+            y1={getStringY(i)}
+            x2={BOARD_LEFT + BOARD_WIDTH}
+            y2={getStringY(i)}
+            stroke="url(#stringMetal)"
+            strokeWidth={STRING_STROKE_WIDTHS[i]}
+            strokeLinecap="round"
+          />
+          <line
+            x1={BOARD_LEFT - OPEN_WIDTH}
+            y1={getStringY(i) - 0.45}
+            x2={BOARD_LEFT + BOARD_WIDTH}
+            y2={getStringY(i) - 0.45}
+            stroke="#f7f8f4"
+            strokeOpacity={0.72}
+            strokeWidth={Math.max(0.55, STRING_STROKE_WIDTHS[i] * 0.28)}
+            strokeLinecap="round"
+          />
+        </g>
       ))}
 
       {STRING_NAMES.map((name, i) => (
         <text
           key={`name-${i}`}
           x={18}
-          y={BOARD_TOP + i * STRING_SPACING}
+          y={getStringY(i)}
           textAnchor="middle"
           dominantBaseline="middle"
           fill="#e7e2da"
@@ -263,11 +338,12 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       ))}
 
       <text
-        x={BOARD_LEFT - OPEN_WIDTH / 2}
+        x={BOARD_LEFT}
         y={BOARD_TOP + BOARD_HEIGHT + 42}
         textAnchor="middle"
-        fill="#aaa49b"
+        fill="#d8cdb9"
         fontSize={13}
+        fontWeight={700}
         fontFamily="system-ui, sans-serif"
       >
         0
@@ -276,11 +352,11 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
       {Array.from({ length: MAX_FRET }, (_, i) => (
         <text
           key={`number-${i + 1}`}
-          x={getFretCenterX(i + 1)}
+          x={getFretX(i + 1)}
           y={BOARD_TOP + BOARD_HEIGHT + 42}
           textAnchor="middle"
           fill="#aaa49b"
-          fontSize={13}
+          fontSize={i >= 19 ? 11 : 12}
           fontFamily="system-ui, sans-serif"
         >
           {i + 1}
@@ -363,7 +439,7 @@ const FretboardSvg: FC<FretboardSvgProps> = ({
               >
                 <rect
                   x={x}
-                  y={BOARD_TOP + stringIndex * STRING_SPACING - STRING_SPACING / 2}
+                  y={getStringY(stringIndex) - STRING_SPACING / 2}
                   width={fretCellWidth}
                   height={STRING_SPACING}
                   fill="transparent"
